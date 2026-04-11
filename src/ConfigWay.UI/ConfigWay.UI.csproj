@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <EmbeddedResource Include="SPA\dist\**\*" />
+    </ItemGroup>
+    
+    <PropertyGroup>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Kododo.Reiho.AspNetCore" Version="0.0.7" />
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ConfigWay\ConfigWay.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include=".nuget\logo.png" Pack="true" PackagePath="\" />
+        <None Include=".nuget\README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PackageId>Kododo.ConfigWay.UI</PackageId>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+</Project>

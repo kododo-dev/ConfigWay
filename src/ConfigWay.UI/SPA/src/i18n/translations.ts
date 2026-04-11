@@ -1,0 +1,44 @@
+export type Language = 'en' | 'pl';
+
+export const translations = {
+  en: {
+    appTitle: 'Configuration',
+    allSettings: 'All Settings',
+    sections: 'Sections',
+    refreshTooltip: 'Refresh',
+    allSettingsTitle: 'All Settings',
+    noSectionsMessage: 'No sections registered.',
+    save: 'Save',
+    discard: 'Discard',
+    saving: 'Saving…',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    notSet: 'not set',
+    switchToDark: 'Switch to dark mode',
+    switchToLight: 'Switch to light mode',
+    searchPlaceholder: 'Search sections and fields…',
+    noResults: 'No results for',
+    unexpectedError: 'Unexpected error',
+  },
+  pl: {
+    appTitle: 'Konfiguracja',
+    allSettings: 'Wszystkie ustawienia',
+    sections: 'Sekcje',
+    refreshTooltip: 'Odśwież',
+    allSettingsTitle: 'Wszystkie ustawienia',
+    noSectionsMessage: 'Brak zarejestrowanych sekcji.',
+    save: 'Zapisz',
+    discard: 'Odrzuć',
+    saving: 'Zapisywanie…',
+    collapse: 'Zwiń',
+    expand: 'Rozwiń',
+    notSet: 'nie ustawiono',
+    switchToDark: 'Przełącz na ciemny motyw',
+    switchToLight: 'Przełącz na jasny motyw',
+    searchPlaceholder: 'Szukaj sekcji i pól…',
+    noResults: 'Brak wyników dla',
+    unexpectedError: 'Niespodziewany błąd',
+  },
+} as const;
+
+export type TranslationKeys = typeof translations['en'];

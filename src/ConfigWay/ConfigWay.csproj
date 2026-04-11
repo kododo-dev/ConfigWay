@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConfigWay.Core\ConfigWay.Core.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include=".nuget\logo.png" Pack="true" PackagePath="\" />
+    <None Include=".nuget\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageId>Kododo.ConfigWay</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>logo.png</PackageIcon>
+  </PropertyGroup>
+  
+</Project>

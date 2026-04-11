@@ -1,0 +1,90 @@
+name: Publish NuGet
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.x
+            9.x
+            10.x
+          dotnet-quality: preview
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'lts/*'
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build SPA
+        working-directory: src/ConfigWay.UI/SPA
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build
+        run: |
+          dotnet build src/ConfigWay.Core/ConfigWay.Core.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet build src/ConfigWay/ConfigWay.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet build src/ConfigWay.UI/ConfigWay.UI.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet build src/ConfigWay.PostgreSQL/ConfigWay.PostgreSQL.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Pack
+        run: |
+          dotnet pack src/ConfigWay.Core/ConfigWay.Core.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
+          dotnet pack src/ConfigWay/ConfigWay.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
+          dotnet pack src/ConfigWay.UI/ConfigWay.UI.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
+          dotnet pack src/ConfigWay.PostgreSQL/ConfigWay.PostgreSQL.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push ./nupkgs/Kododo.ConfigWay.Core.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push ./nupkgs/Kododo.ConfigWay.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push ./nupkgs/Kododo.ConfigWay.UI.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push ./nupkgs/Kododo.ConfigWay.PostgreSQL.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

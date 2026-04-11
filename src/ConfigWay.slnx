@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Demo/">
+    <Project Path="ConfigWay.Demo.Web/ConfigWay.Demo.Web.csproj" />
+  </Folder>
+  <Folder Name="/Externals/">
+    <Project Path="ConfigWay.PostgreSQL/ConfigWay.PostgreSQL.csproj" />
+  </Folder>
+  <Project Path="ConfigWay.Core/ConfigWay.Core.csproj" />
+  <Project Path="ConfigWay.UI/ConfigWay.UI.csproj" />
+  <Project Path="ConfigWay/ConfigWay.csproj" />
+</Solution>

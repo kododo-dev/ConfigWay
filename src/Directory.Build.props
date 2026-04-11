@@ -1,0 +1,21 @@
+﻿<Project>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>Kododo.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>Kododo.$(MSBuildProjectName)</RootNamespace>
+    <PackageId>Kododo.$(MSBuildProjectName)</PackageId>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Kododo</Authors>
+  </PropertyGroup>
+
+</Project>
+

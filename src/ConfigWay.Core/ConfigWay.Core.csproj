@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Kododo.ConfigWay.Core</PackageId>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include=".nuget\logo.png" Pack="true" PackagePath="\" />
+        <None Include=".nuget\README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+</Project>
