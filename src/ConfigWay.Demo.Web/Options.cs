@@ -3,12 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace Kododo.ConfigWay.Demo.Web;
 
-// NOTE: ConfigWay currently surfaces only `string` properties as editable fields
-// (see Kododo.ConfigWay.ConfigurationProvider.IsLeaf). Values that semantically
-// represent bools/ints/URIs are therefore modeled as strings and parsed by the
-// consuming subsystem. Validators below demonstrate how to enforce those
-// contracts at save time without requiring the library to understand new types.
-
 // ── Branding / public contact ────────────────────────────────────────────────
 
 [Display(
@@ -51,10 +45,10 @@ public class SmtpOptions
     public string Host { get; set; } = string.Empty;
 
     [Display(Name = "Port", Description = "TCP port. Common values: 25, 465, 587.")]
-    public string Port { get; set; } = "587";
+    public int Port { get; set; } = 587;
 
-    [Display(Name = "Use Ssl", Description = "Whether STARTTLS/SSL should be negotiated. Accepts 'true' or 'false'.")]
-    public string UseSsl { get; set; } = "true";
+    [Display(Name = "Use SSL", Description = "Whether STARTTLS/SSL should be negotiated.")]
+    public bool UseSsl { get; set; } = true;
 
     [Display(Name = "From Address", Description = "Envelope sender address (RFC 5321 MAIL FROM).")]
     public string FromAddress { get; set; } = string.Empty;
@@ -75,16 +69,8 @@ public class SmtpOptionsValidator : IValidateOptions<SmtpOptions>
         if (!string.IsNullOrEmpty(options.FromAddress) && string.IsNullOrEmpty(options.Host))
             failures.Add("Smtp.Host is required when Smtp.FromAddress is configured.");
 
-        if (!string.IsNullOrEmpty(options.Port))
-        {
-            if (!int.TryParse(options.Port, out var port))
-                failures.Add($"Smtp.Port '{options.Port}' is not a valid integer.");
-            else if (port is <= 0 or > 65535)
-                failures.Add($"Smtp.Port must be between 1 and 65535 (got {port}).");
-        }
-
-        if (!string.IsNullOrEmpty(options.UseSsl) && options.UseSsl is not ("true" or "false"))
-            failures.Add("Smtp.UseSsl must be 'true' or 'false'.");
+        if (options.Port is <= 0 or > 65535)
+            failures.Add($"Smtp.Port must be between 1 and 65535 (got {options.Port}).");
 
         if (!string.IsNullOrEmpty(options.FromAddress) && !options.FromAddress.Contains('@'))
             failures.Add($"Smtp.FromAddress '{options.FromAddress}' is not a valid email address.");
@@ -115,10 +101,10 @@ public class IdentityOptions
     public string ClientSecret { get; set; } = string.Empty;
 
     [Display(Name = "Access Token Lifetime (minutes)", Description = "Target access token lifetime in minutes.")]
-    public string AccessTokenLifetimeMinutes { get; set; } = "60";
+    public int AccessTokenLifetimeMinutes { get; set; } = 60;
 
-    [Display(Name = "Require Https Metadata", Description = "'true' in every environment except local dev.")]
-    public string RequireHttpsMetadata { get; set; } = "true";
+    [Display(Name = "Require HTTPS Metadata", Description = "Set to false only in local development.")]
+    public bool RequireHttpsMetadata { get; set; } = true;
 }
 
 public class IdentityOptionsValidator : IValidateOptions<IdentityOptions>
@@ -133,17 +119,8 @@ public class IdentityOptionsValidator : IValidateOptions<IdentityOptions>
             failures.Add($"Identity.Authority '{options.Authority}' is not a valid absolute URI.");
         }
 
-        if (!string.IsNullOrEmpty(options.AccessTokenLifetimeMinutes)
-            && (!int.TryParse(options.AccessTokenLifetimeMinutes, out var lifetime) || lifetime <= 0))
-        {
+        if (options.AccessTokenLifetimeMinutes <= 0)
             failures.Add("Identity.AccessTokenLifetimeMinutes must be a positive integer.");
-        }
-
-        if (!string.IsNullOrEmpty(options.RequireHttpsMetadata)
-            && options.RequireHttpsMetadata is not ("true" or "false"))
-        {
-            failures.Add("Identity.RequireHttpsMetadata must be 'true' or 'false'.");
-        }
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
@@ -152,6 +129,18 @@ public class IdentityOptionsValidator : IValidateOptions<IdentityOptions>
 }
 
 // ── Object storage (S3-compatible) ───────────────────────────────────────────
+
+public enum StorageProvider
+{
+    [Display(Name = "Amazon S3")]
+    S3,
+
+    [Display(Name = "Azure Blob Storage")]
+    AzureBlob,
+
+    [Display(Name = "Google Cloud Storage")]
+    Gcs,
+}
 
 public class StorageCredentials
 {
@@ -167,8 +156,8 @@ public class StorageCredentials
     Description = "Object storage backend used for user uploads, backups and static assets.")]
 public class StorageOptions
 {
-    [Display(Name = "Provider", Description = "Storage provider identifier. Supported: 's3', 'azure-blob', 'gcs'.")]
-    public string Provider { get; set; } = "s3";
+    [Display(Name = "Provider", Description = "Storage backend to use.")]
+    public StorageProvider Provider { get; set; } = StorageProvider.S3;
 
     [Display(Name = "Endpoint", Description = "Service endpoint; leave blank to use the provider default.")]
     public string Endpoint { get; set; } = string.Empty;
@@ -179,8 +168,8 @@ public class StorageOptions
     [Display(Name = "Bucket Name", Description = "Bucket/container that holds application assets.")]
     public string BucketName { get; set; } = string.Empty;
 
-    [Display(Name = "Presigned Url Ttl (seconds)", Description = "Default lifetime of generated presigned URLs.")]
-    public string PresignedUrlTtlSeconds { get; set; } = "900";
+    [Display(Name = "Presigned URL TTL (seconds)", Description = "Default lifetime of generated presigned URLs.")]
+    public int PresignedUrlTtlSeconds { get; set; } = 900;
 
     [Display(Name = "Credentials", Description = "Access credentials for the storage backend.")]
     public StorageCredentials Credentials { get; set; } = new();
@@ -190,18 +179,18 @@ public class StorageOptions
 
 [Display(
     Name = "FeatureFlags",
-    Description = "Runtime toggles for shipping work-in-progress behavior. Values must be 'true' or 'false'.")]
+    Description = "Runtime toggles for shipping work-in-progress behavior.")]
 public class FeatureFlags
 {
     [Display(Name = "Enable New Checkout", Description = "Redirects users to the redesigned checkout flow.")]
-    public string EnableNewCheckout { get; set; } = "false";
+    public bool EnableNewCheckout { get; set; } = false;
 
     [Display(Name = "Enable Beta Banner", Description = "Shows the 'beta' banner on top of the SPA.")]
-    public string EnableBetaBanner { get; set; } = "false";
+    public bool EnableBetaBanner { get; set; } = false;
 
     [Display(Name = "Maintenance Mode", Description = "Short-circuits the site into a maintenance page.")]
-    public string MaintenanceMode { get; set; } = "false";
+    public bool MaintenanceMode { get; set; } = false;
 
     [Display(Name = "Read-Only Mode", Description = "Disables writes while keeping reads available.")]
-    public string ReadOnlyMode { get; set; } = "false";
+    public bool ReadOnlyMode { get; set; } = false;
 }

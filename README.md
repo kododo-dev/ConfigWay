@@ -45,6 +45,19 @@ x.AddOptions<EmailOptions>("Mail");
 
 Nested types are supported and rendered as collapsible subsections in the UI.
 
+## Supported field types
+
+ConfigWay maps C# property types to dedicated UI controls automatically:
+
+| C# type | UI control |
+|---|---|
+| `string` | Text input |
+| `bool` | Toggle switch |
+| `int`, `long`, `double`, `decimal`, … | Numeric input |
+| `enum` | Dropdown select |
+
+Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
+
 ## Customizing UI labels and descriptions
 
 Use `[Display]` from `System.ComponentModel.DataAnnotations` to control how options appear in the UI.
@@ -69,6 +82,22 @@ public class EmailOptions
 `Name` overrides the label shown next to the field or in the section header. When omitted, the property name is used as-is.
 
 `Description` renders a small **ⓘ** icon next to the label — hovering over it shows the description as a tooltip. Works on both fields and sections.
+
+`[Display]` on enum members controls the label shown in the dropdown. The underlying member name is still used as the stored value.
+
+```csharp
+public enum StorageProvider
+{
+    [Display(Name = "Amazon S3")]
+    S3,
+
+    [Display(Name = "Azure Blob Storage")]
+    AzureBlob,
+
+    [Display(Name = "Google Cloud Storage")]
+    Gcs,
+}
+```
 
 ## Validation
 

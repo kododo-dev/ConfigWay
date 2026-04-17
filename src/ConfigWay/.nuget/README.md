@@ -36,6 +36,21 @@ x.AddOptions<EmailOptions>("Mail");
 
 Nested types are supported and rendered as subsections in the UI.
 
+## Supported field types
+
+ConfigWay maps C# property types to dedicated UI controls automatically:
+
+| C# type | UI control |
+|---|---|
+| `string` | Text input |
+| `bool` | Toggle switch |
+| `int`, `long`, `double`, `decimal`, … | Numeric input |
+| `enum` | Dropdown select |
+
+Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
+
+Use `[Display(Name = "...")]` on enum members to customise the labels shown in the dropdown — the underlying member name is still used as the stored value.
+
 ## Validation
 
 ```csharp

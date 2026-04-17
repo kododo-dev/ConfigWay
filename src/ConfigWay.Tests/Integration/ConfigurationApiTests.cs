@@ -30,6 +30,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         {
             x.AddOptions<SimpleOptions>("Simple");
             x.AddOptions<NestedOptions>("Nested");
+            x.AddOptions<TypedOptions>("Typed");
             x.AddUiEditor();
         });
         
@@ -61,8 +62,8 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
 
-        sections.Should().HaveCount(2);
-        sections.Select(s => s.Key).Should().BeEquivalentTo("Simple", "Nested");
+        sections.Should().HaveCount(3);
+        sections.Select(s => s.Key).Should().BeEquivalentTo("Simple", "Nested", "Typed");
     }
 
     [Fact]
@@ -174,6 +175,89 @@ public class ConfigurationApiTests : IAsyncLifetime
         field.Value.Should().BeNull();
     }
 
+    // ── Field types over HTTP ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetConfiguration_StringField_HasStringType()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Label");
+        field.Type.Should().Be("String");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_BoolField_HasBoolType()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Enabled");
+        field.Type.Should().Be("Bool");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_NumberField_HasNumberType()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Count");
+        field.Type.Should().Be("Number");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_EnumField_HasEnumType()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        field.Type.Should().Be("Enum");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_EnumField_ReturnsOptions()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        field.Options.Should().NotBeNull();
+        field.Options!.Select(o => o.Value).Should().BeEquivalentTo("Low", "Medium", "High");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_EnumField_DisplayAttributeAppliedToLabels()
+    {
+        var sections = await FetchSections();
+        var options = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level").Options!;
+        options.Single(o => o.Value == "Low").Label.Should().Be("Low priority");
+        options.Single(o => o.Value == "High").Label.Should().Be("High priority");
+        options.Single(o => o.Value == "Medium").Label.Should().Be("Medium");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_BoolValue_SavedAndRetrieved()
+    {
+        await PostUpdateConfiguration([new Setting("Typed:Enabled", "True")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Enabled");
+        field.Value.Should().Be("True");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_IntValue_SavedAndRetrieved()
+    {
+        await PostUpdateConfiguration([new Setting("Typed:Count", "99")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Count");
+        field.Value.Should().Be("99");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_EnumValue_SavedAndRetrieved()
+    {
+        await PostUpdateConfiguration([new Setting("Typed:Level", "High")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        field.Value.Should().Be("High");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
@@ -183,8 +267,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var json = JsonSerializer.Serialize(new { Settings = settings }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         var response = await _client.PostAsync("/config/api/UpdateConfiguration", new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
-        // No artificial delay: UpdateConfigurationHandler awaits ReloadAllAsync synchronously
-        // before returning, so the new values are already observable when the response arrives.
+
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync();
@@ -216,7 +299,10 @@ public class ConfigurationApiTests : IAsyncLifetime
     private sealed record FieldDto(
         string Key,
         string? Name,
-        int Type,
+        string Type,
         string? Value,
-        string? Description);
+        string? Description,
+        EnumOptionDto[]? Options);
+
+    private sealed record EnumOptionDto(string Value, string Label);
 }

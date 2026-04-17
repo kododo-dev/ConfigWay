@@ -47,9 +47,10 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
                 fields.Add(new Field(
                     Key:         propKey,
                     Name:        propName,
-                    Type:        FieldType.String,
+                    Type:        MapFieldType(underlying),
                     Value:       value,
-                    Description: propDescription));
+                    Description: propDescription,
+                    Options:     GetEnumOptions(underlying)));
             }
             else
             {
@@ -66,5 +67,32 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
     }
 
     private static bool IsLeaf(Type t) =>
-        t == typeof(string);
+        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
+
+    private static bool IsNumeric(Type t) =>
+        t == typeof(int)     || t == typeof(long)   || t == typeof(short)  ||
+        t == typeof(float)   || t == typeof(double) || t == typeof(decimal) ||
+        t == typeof(byte)    || t == typeof(uint)   || t == typeof(ulong);
+
+    private static FieldType MapFieldType(Type t)
+    {
+        if (t == typeof(bool))   return FieldType.Bool;
+        if (IsNumeric(t))        return FieldType.Number;
+        if (t.IsEnum)            return FieldType.Enum;
+        return FieldType.String;
+    }
+
+    private static EnumOption[]? GetEnumOptions(Type t)
+    {
+        if (!t.IsEnum) return null;
+
+        return t.GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Select(f =>
+            {
+                var display = f.GetCustomAttribute<DisplayAttribute>();
+                var label   = display?.GetName() ?? f.Name;
+                return new EnumOption(Value: f.Name, Label: label);
+            })
+            .ToArray();
+    }
 }

@@ -188,6 +188,92 @@ public class GetConfigurationHandlerTests
         sections.Single().Description.Should().BeNull();
     }
 
+    // ── Field types ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Handle_StringProperty_MapsToStringType()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields.Single(f => f.Key == "T:Label").Type
+            .Should().Be(Kododo.ConfigWay.UI.DTO.FieldType.String);
+    }
+
+    [Fact]
+    public async Task Handle_BoolProperty_MapsToBoolType()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields.Single(f => f.Key == "T:Enabled").Type
+            .Should().Be(Kododo.ConfigWay.UI.DTO.FieldType.Bool);
+    }
+
+    [Fact]
+    public async Task Handle_NullableBoolProperty_MapsToBoolType()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields.Single(f => f.Key == "T:Optional").Type
+            .Should().Be(Kododo.ConfigWay.UI.DTO.FieldType.Bool);
+    }
+
+    [Fact]
+    public async Task Handle_IntProperty_MapsToNumberType()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields.Single(f => f.Key == "T:Count").Type
+            .Should().Be(Kododo.ConfigWay.UI.DTO.FieldType.Number);
+    }
+
+    [Fact]
+    public async Task Handle_EnumProperty_MapsToEnumType()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields.Single(f => f.Key == "T:Level").Type
+            .Should().Be(Kododo.ConfigWay.UI.DTO.FieldType.Enum);
+    }
+
+    [Fact]
+    public async Task Handle_NonEnumFields_HaveNullOptions()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        sections.Single().Fields
+            .Where(f => f.Key != "T:Level")
+            .Should().AllSatisfy(f => f.Options.Should().BeNull());
+    }
+
+    [Fact]
+    public async Task Handle_EnumField_PopulatesAllMemberValues()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        var options = sections.Single().Fields.Single(f => f.Key == "T:Level").Options;
+        options.Should().NotBeNull();
+        options!.Select(o => o.Value).Should().BeEquivalentTo("Low", "Medium", "High");
+    }
+
+    [Fact]
+    public async Task Handle_EnumField_DisplayAttributeOnMember_UsesDisplayName()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        var options = sections.Single().Fields.Single(f => f.Key == "T:Level").Options!;
+        options.Single(o => o.Value == "Low").Label.Should().Be("Low priority");
+        options.Single(o => o.Value == "High").Label.Should().Be("High priority");
+    }
+
+    [Fact]
+    public async Task Handle_EnumField_MemberWithoutDisplayAttribute_UsesMemberName()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+        var options = sections.Single().Fields.Single(f => f.Key == "T:Level").Options!;
+        options.Single(o => o.Value == "Medium").Label.Should().Be("Medium");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private GetConfigurationHandler CreateHandler(params CoreOptions[] options)

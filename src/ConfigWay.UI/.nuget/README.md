@@ -43,7 +43,7 @@ app.UseConfigWay()
 - Save / Discard in the page header — active only when changes are pending
 - Validation errors shown in the sticky header
 - Search across section names, field names and values with inline highlighting
-- Auto-growing multiline text inputs
+- Field type-aware controls: text input for `string`, toggle switch for `bool`, numeric input for numeric types, dropdown for `enum`
 - Dark / light theme, persisted to `localStorage`
 - Language follows browser preference (English and Polish)
 

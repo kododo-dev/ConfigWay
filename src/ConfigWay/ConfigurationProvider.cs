@@ -11,8 +11,6 @@ public interface IConfigurationEditor
 internal sealed class ConfigurationProvider(Configuration configuration)
     : Microsoft.Extensions.Configuration.ConfigurationProvider, IConfigurationEditor
 {
-    // Build the allowed-keys set recursively so nested properties
-    // (e.g. "EmailOptions:Credentials:Username") are included.
     private readonly HashSet<string> _keys = BuildKeys(configuration);
 
     public override void Load()
@@ -40,11 +38,7 @@ internal sealed class ConfigurationProvider(Configuration configuration)
             CollectKeys(options.Key, options.Type, keys);
         return keys;
     }
-
-    /// <summary>
-    /// Recursively walks the options type tree and registers every leaf key
-    /// (i.e. every key that maps to a string or primitive property).
-    /// </summary>
+    
     private static void CollectKeys(string prefix, Type type, HashSet<string> keys)
     {
         foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -56,9 +50,15 @@ internal sealed class ConfigurationProvider(Configuration configuration)
             if (IsLeaf(underlying))
                 keys.Add(propKey);
             else
-                CollectKeys(propKey, underlying, keys);   // recurse into nested type
+                CollectKeys(propKey, underlying, keys);
         }
     }
 
-    private static bool IsLeaf(Type t) => t == typeof(string);
+    private static bool IsLeaf(Type t) =>
+        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
+
+    private static bool IsNumeric(Type t) =>
+        t == typeof(int)     || t == typeof(long)   || t == typeof(short)  ||
+        t == typeof(float)   || t == typeof(double) || t == typeof(decimal) ||
+        t == typeof(byte)    || t == typeof(uint)   || t == typeof(ulong);
 }

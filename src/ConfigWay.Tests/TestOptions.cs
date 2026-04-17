@@ -65,3 +65,23 @@ internal class AnnotatedChild
     public string ChildField { get; set; } = string.Empty;
 }
 
+// ── Typed options (bool, int, enum) ──────────────────────────────────────────
+
+internal enum Severity
+{
+    [Display(Name = "Low priority")]
+    Low,
+    Medium,
+    [Display(Name = "High priority")]
+    High,
+}
+
+internal class TypedOptions
+{
+    public bool     Enabled  { get; set; }
+    public int      Count    { get; set; }
+    public Severity Level    { get; set; }
+    public string   Label    { get; set; } = string.Empty;
+    public bool?    Optional { get; set; }
+}
+

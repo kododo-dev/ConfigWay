@@ -1,6 +1,9 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import InputBase from '@mui/material/InputBase';
+import Switch from '@mui/material/Switch';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { Field } from '../../api/api.model';
@@ -27,6 +30,121 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
   const borderHoverColor = isDark ? '#444'    : '#bbb';
   const borderFocusColor = theme.palette.primary.main;
   const inputBg          = isDark ? '#141414' : '#ffffff';
+
+  const renderInput = () => {
+    switch (field.type) {
+      case 'Bool':
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: 36 }}>
+            <Switch
+              checked={draft === 'True'}
+              onChange={e => onChange(field.key, e.target.checked ? 'True' : 'False')}
+              size="small"
+            />
+            <Typography sx={{ ...MONO, fontSize: '0.78rem', color: theme.palette.text.secondary, ml: 0.5 }}>
+              {draft === 'True' ? 'True' : 'False'}
+            </Typography>
+          </Box>
+        );
+
+      case 'Number':
+        return (
+          <InputBase
+            value={draft}
+            onChange={e => onChange(field.key, e.target.value)}
+            placeholder={field.value ?? t.notSet}
+            inputProps={{ inputMode: 'numeric', pattern: '[0-9]*[.,]?[0-9]*' }}
+            fullWidth
+            sx={{
+              ...MONO,
+              fontSize: '0.78rem',
+              color: theme.palette.text.primary,
+              background: inputBg,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '4px',
+              px: 1,
+              py: '6px',
+              lineHeight: 1.5,
+              transition: 'border-color 0.15s',
+              '&:hover': { borderColor: borderHoverColor },
+              '&.Mui-focused': { borderColor: borderFocusColor },
+              '& input': { ...MONO, fontSize: '0.78rem', p: 0 },
+              '& input::placeholder': {
+                color: isDark ? '#444' : '#bbb',
+                fontStyle: 'italic',
+                opacity: 1,
+              },
+            }}
+          />
+        );
+
+      case 'Enum':
+        return (
+          <Select
+            value={draft}
+            onChange={e => onChange(field.key, e.target.value)}
+            displayEmpty
+            size="small"
+            fullWidth
+            sx={{
+              ...MONO,
+              fontSize: '0.78rem',
+              background: inputBg,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: borderHoverColor },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: borderFocusColor },
+              '& .MuiSelect-select': { ...MONO, fontSize: '0.78rem', py: '6px' },
+            }}
+          >
+            {(field.options ?? []).map(opt => (
+              <MenuItem key={opt.value} value={opt.value} sx={{ ...MONO, fontSize: '0.78rem' }}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        );
+
+      default:
+        return (
+          <InputBase
+            value={draft}
+            onChange={e => onChange(field.key, e.target.value)}
+            placeholder={field.value ?? t.notSet}
+            fullWidth
+            multiline
+            minRows={1}
+            sx={{
+              ...MONO,
+              fontSize: '0.78rem',
+              color: theme.palette.text.primary,
+              alignItems: 'flex-start',
+              background: inputBg,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '4px',
+              px: 1,
+              py: '6px',
+              lineHeight: 1.5,
+              transition: 'border-color 0.15s',
+              '&:hover': { borderColor: borderHoverColor },
+              '&.Mui-focused': { borderColor: borderFocusColor },
+              '& textarea': {
+                ...MONO,
+                fontSize: '0.78rem',
+                color: theme.palette.text.primary,
+                lineHeight: 1.5,
+                resize: 'none',
+                p: 0,
+              },
+              '& textarea::placeholder': {
+                color: isDark ? '#444' : '#bbb',
+                fontStyle: 'italic',
+                opacity: 1,
+              },
+            }}
+          />
+        );
+    }
+  };
 
   return (
     <Box sx={{
@@ -66,43 +184,10 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
         )}
       </Box>
 
-      {/* Auto-growing textarea */}
-      <InputBase
-        value={draft}
-        onChange={e => onChange(field.key, e.target.value)}
-        placeholder={field.value ?? t.notSet}
-        fullWidth
-        multiline
-        minRows={1}
-        sx={{
-          ...MONO,
-          fontSize: '0.78rem',
-          color: theme.palette.text.primary,
-          alignItems: 'flex-start',
-          background: inputBg,
-          border: `1px solid ${borderColor}`,
-          borderRadius: '4px',
-          px: 1,
-          py: '6px',
-          lineHeight: 1.5,
-          transition: 'border-color 0.15s',
-          '&:hover': { borderColor: borderHoverColor },
-          '&.Mui-focused': { borderColor: borderFocusColor },
-          '& textarea': {
-            ...MONO,
-            fontSize: '0.78rem',
-            color: theme.palette.text.primary,
-            lineHeight: 1.5,
-            resize: 'none',
-            p: 0,
-          },
-          '& textarea::placeholder': {
-            color: isDark ? '#444' : '#bbb',
-            fontStyle: 'italic',
-            opacity: 1,
-          },
-        }}
-      />
+      {/* Field input */}
+      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+        {renderInput()}
+      </Box>
     </Box>
   );
 };

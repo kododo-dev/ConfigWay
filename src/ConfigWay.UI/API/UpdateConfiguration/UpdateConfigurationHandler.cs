@@ -161,7 +161,13 @@ internal class UpdateConfigurationHandler(
         type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.CanRead && p.CanWrite);
 
-    private static bool IsLeaf(Type t) => t == typeof(string);
+    private static bool IsLeaf(Type t) =>
+        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
+
+    private static bool IsNumeric(Type t) =>
+        t == typeof(int)     || t == typeof(long)   || t == typeof(short)  ||
+        t == typeof(float)   || t == typeof(double) || t == typeof(decimal) ||
+        t == typeof(byte)    || t == typeof(uint)   || t == typeof(ulong);
 
     private static object? ConvertValue(string? value, Type targetType)
     {
@@ -169,6 +175,10 @@ internal class UpdateConfigurationHandler(
             return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
 
         var underlying = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+        if (underlying.IsEnum)
+            return Enum.Parse(underlying, value, ignoreCase: true);
+
         return Convert.ChangeType(value, underlying, CultureInfo.InvariantCulture);
     }
 }

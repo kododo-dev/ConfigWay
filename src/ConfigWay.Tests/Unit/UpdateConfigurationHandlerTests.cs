@@ -152,6 +152,83 @@ public class UpdateConfigurationHandlerTests
         errors.Should().BeEmpty();
     }
 
+    // ── Typed values — bool, number, enum ────────────────────────────────────
+
+    [Theory]
+    [InlineData("True")]
+    [InlineData("False")]
+    [InlineData("true")]
+    [InlineData("false")]
+    public async Task HandleAsync_BoolValue_Accepted(string value)
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Enabled", value) };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_InvalidBoolValue_ReturnsError()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Enabled", "yes") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().ContainSingle(e => e.Contains("T:Enabled"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_IntValue_Accepted()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Count", "42") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_InvalidIntValue_ReturnsError()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Count", "not-a-number") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().ContainSingle(e => e.Contains("T:Count"));
+    }
+
+    [Theory]
+    [InlineData("Low")]
+    [InlineData("Medium")]
+    [InlineData("High")]
+    [InlineData("low")]
+    [InlineData("HIGH")]
+    public async Task HandleAsync_EnumValue_Accepted(string value)
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Level", value) };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_InvalidEnumValue_ReturnsError()
+    {
+        var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
+        var settings = new[] { new Setting("T:Level", "Critical") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().ContainSingle(e => e.Contains("T:Level"));
+    }
+
     // ── Nested properties ─────────────────────────────────────────────────────
 
     [Fact]

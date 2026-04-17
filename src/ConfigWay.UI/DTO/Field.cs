@@ -5,4 +5,5 @@ internal record Field(
     string Name,
     FieldType Type,
     string? Value,
-    string? Description);
+    string? Description,
+    EnumOption[]? Options);
