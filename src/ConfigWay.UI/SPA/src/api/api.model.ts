@@ -3,6 +3,7 @@ export interface Field {
   name: string;
   type: 'String';
   value: string | null;
+  description: string | null;
 }
 
 export interface Section {
@@ -10,6 +11,7 @@ export interface Section {
   name: string;
   sections: Section[];
   fields: Field[];
+  description: string | null;
 }
 
 export interface ValidationResult {

@@ -1,0 +1,38 @@
+# Normalize line endings on commit, check out with OS-native endings.
+* text=auto eol=lf
+
+# Explicit text handling for common source/content types.
+*.cs        text eol=lf diff=csharp
+*.csproj    text eol=lf
+*.slnx      text eol=lf
+*.props     text eol=lf
+*.targets   text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+
+# Shell scripts must be LF regardless of platform.
+*.sh        text eol=lf
+
+# Windows scripts keep CRLF.
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binary files — never touch.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.dll       binary
+*.exe       binary
+*.pfx       binary

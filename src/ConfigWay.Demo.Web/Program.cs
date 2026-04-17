@@ -11,13 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddConfigWay(x =>
 {
-    x.AddOptions<AppOptions>();
-    x.AddOptions<EmailOptions>();
+    x.AddOptions<BrandingOptions>("Branding");
+    x.AddOptions<SmtpOptions>("Smtp");
+    x.AddOptions<IdentityOptions>("Identity");
+    x.AddOptions<StorageOptions>("Storage");
+    x.AddOptions<FeatureFlags>("FeatureFlags");
     x.AddUiEditor();
     x.UsePostgreSql(builder.Configuration.GetConnectionString("DemoDB")!);
 });
 
-builder.Services.AddSingleton<IValidateOptions<EmailOptions>, EmailOptionsValidator>();
+builder.Services.AddSingleton<IValidateOptions<SmtpOptions>, SmtpOptionsValidator>();
+builder.Services.AddSingleton<IValidateOptions<IdentityOptions>, IdentityOptionsValidator>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie();
@@ -30,7 +34,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => "Hello World!");
-app.MapGet("/email", (IOptionsSnapshot<EmailOptions> options) => options.Value);
+
+// Expose current live values of every section so you can verify that
+// "Save" in the ConfigWay UI is reflected without restarting the app.
+// These live under /preview to avoid colliding with UseConfigWay() mounted at /config.
+app.MapGet("/preview/branding", (IOptionsSnapshot<BrandingOptions> opts) => opts.Value);
+app.MapGet("/preview/smtp", (IOptionsSnapshot<SmtpOptions> opts) => opts.Value);
+app.MapGet("/preview/identity", (IOptionsSnapshot<IdentityOptions> opts) => opts.Value);
+app.MapGet("/preview/storage", (IOptionsSnapshot<StorageOptions> opts) => opts.Value);
+app.MapGet("/preview/feature-flags", (IOptionsSnapshot<FeatureFlags> opts) => opts.Value);
 
 app.MapGet("/login", async (HttpContext ctx) =>
 {
@@ -49,7 +61,7 @@ app.MapGet("/logout", async (HttpContext ctx) =>
 app.UseConfigWay()
     .RequireAuthorization(policy => policy.RequireRole("Admin"));
 
-app.MapGroup("/internal")
+app.MapGroup("/public")
     .UseConfigWay();
 
 app.Run();

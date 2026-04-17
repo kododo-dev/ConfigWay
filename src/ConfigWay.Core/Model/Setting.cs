@@ -1,3 +1,3 @@
 ﻿namespace Kododo.ConfigWay.Core.Model;
 
-public record Setting(string Key, string? Value);
+public record Setting(string  Key, string? Value);

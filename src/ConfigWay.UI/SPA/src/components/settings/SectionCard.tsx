@@ -8,6 +8,7 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import FolderIcon from '@mui/icons-material/Folder';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import FieldEditor from './FieldEditor';
 import type { Section, Field } from '../../api/api.model';
 import { useI18n } from '../../i18n/I18nContext';
@@ -61,6 +62,22 @@ function sectionMatches(section: Section, draft: Record<string, string>, q: stri
   return section.sections.some(sub => sectionMatches(sub, draft, q));
 }
 
+interface DescriptionBadgeProps { description: string; isDark: boolean; }
+
+const DescriptionBadge = ({ description, isDark }: DescriptionBadgeProps) => (
+  <Tooltip title={description} placement="top" arrow>
+    <InfoOutlinedIcon sx={{
+      fontSize: 13,
+      ml: 0.75,
+      color: isDark ? '#444' : '#c0c0c0',
+      cursor: 'help',
+      flexShrink: 0,
+      verticalAlign: 'middle',
+      '&:hover': { color: isDark ? '#888' : '#888' },
+    }} />
+  </Tooltip>
+);
+
 interface SubSectionProps {
   section: Section;
   draft: Record<string, string>;
@@ -78,14 +95,14 @@ const SubSection = ({ section, draft, onChange, depth, searchQuery }: SubSection
 
   const isSearching = !!searchQuery;
   const collapsed = isSearching ? false : userCollapsed;
-  
+
   const visibleFields = isSearching
     ? section.fields.filter(f => {
         if (matches(section.name, searchQuery) || matches(section.key, searchQuery)) return true;
         return fieldMatches(f, draft, searchQuery);
       })
     : section.fields;
-  
+
   const visibleSubs = isSearching
     ? section.sections.filter(sub => sectionMatches(sub, draft, searchQuery))
     : section.sections;
@@ -110,9 +127,12 @@ const SubSection = ({ section, draft, onChange, depth, searchQuery }: SubSection
           ? <FolderIcon sx={{ fontSize: 13, color: isDark ? '#555' : '#aaa' }} />
           : <FolderOpenIcon sx={{ fontSize: 13, color: isDark ? '#555' : '#aaa' }} />
         }
-        <Typography sx={{ ...MONO, fontSize: '0.74rem', fontWeight: 700, color: theme.palette.text.secondary, flex: 1 }}>
-          <Highlight text={section.name} query={searchQuery} />
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          <Typography sx={{ ...MONO, fontSize: '0.74rem', fontWeight: 700, color: theme.palette.text.secondary }}>
+            <Highlight text={section.name} query={searchQuery} />
+          </Typography>
+          {section.description && <DescriptionBadge description={section.description} isDark={isDark} />}
+        </Box>
         {!isSearching && (
           <Tooltip title={collapsed ? t.expand : t.collapse}>
             <Box component="span" sx={{ display: 'flex', color: isDark ? '#444' : '#bbb' }}>
@@ -155,18 +175,18 @@ const SectionCard = ({ section, draft, onChange, depth = 0, searchQuery = '' }: 
 
   const isSearching = !!searchQuery;
   const collapsed = isSearching ? false : userCollapsed;
-  
+
   const visibleFields = isSearching
     ? section.fields.filter(f => {
         if (matches(section.name, searchQuery) || matches(section.key, searchQuery)) return true;
         return fieldMatches(f, draft, searchQuery);
       })
     : section.fields;
-  
+
   const visibleSubs = isSearching
     ? section.sections.filter(sub => sectionMatches(sub, draft, searchQuery))
     : section.sections;
-  
+
   if (isSearching && visibleFields.length === 0 && visibleSubs.length === 0) return null;
 
   return (
@@ -197,9 +217,12 @@ const SectionCard = ({ section, draft, onChange, depth = 0, searchQuery = '' }: 
             ? <FolderIcon sx={{ fontSize: 14, color: isDark ? '#555' : '#aaa' }} />
             : <FolderOpenIcon sx={{ fontSize: 14, color: isDark ? '#555' : '#aaa' }} />
           }
-          <Typography sx={{ ...MONO, fontSize: '0.82rem', fontWeight: 700, color: theme.palette.text.primary }}>
-            <Highlight text={section.name} query={searchQuery} />
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography sx={{ ...MONO, fontSize: '0.82rem', fontWeight: 700, color: theme.palette.text.primary }}>
+              <Highlight text={section.name} query={searchQuery} />
+            </Typography>
+            {section.description && <DescriptionBadge description={section.description} isDark={isDark} />}
+          </Box>
         </Box>
         {!isSearching && (
           <Tooltip title={collapsed ? t.expand : t.collapse}>

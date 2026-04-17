@@ -1,5 +1,7 @@
 # ConfigWay
 
+[![CI](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml/badge.svg)](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml)
+
 Runtime configuration editor for ASP.NET Core. View and modify `IOptions<T>` values at runtime through a built-in web UI without restarting the application.
 
 ## Packages
@@ -42,6 +44,31 @@ x.AddOptions<EmailOptions>("Mail");
 ```
 
 Nested types are supported and rendered as collapsible subsections in the UI.
+
+## Customizing UI labels and descriptions
+
+Use `[Display]` from `System.ComponentModel.DataAnnotations` to control how options appear in the UI.
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+
+[Display(Name = "E-mail", Description = "Outgoing mail server settings")]
+public class EmailOptions
+{
+    [Display(Name = "SMTP Server", Description = "Hostname of the mail server, e.g. smtp.gmail.com")]
+    public string SmtpServer { get; set; } = string.Empty;
+
+    [Display(Name = "Sender address")]
+    public string SenderEmail { get; set; } = string.Empty;
+
+    [Display(Name = "Credentials")]
+    public Credentials Credentials { get; set; } = new();
+}
+```
+
+`Name` overrides the label shown next to the field or in the section header. When omitted, the property name is used as-is.
+
+`Description` renders a small **ⓘ** icon next to the label — hovering over it shows the description as a tooltip. Works on both fields and sections.
 
 ## Validation
 

@@ -11,8 +11,9 @@ internal sealed class Store(string connectionString) : IStore
     
     public async Task InitializeAsync(CancellationToken stoppingToken = default)
     {
-        await EnsureSchemaExistsAsync(stoppingToken);
-        await EnsureTableExistsAsync(stoppingToken);
+        await using var conn = await OpenAsync(stoppingToken);
+        await EnsureSchemaExistsAsync(conn, stoppingToken);
+        await EnsureTableExistsAsync(conn, stoppingToken);
     }
 
     public async Task<IReadOnlyList<Setting>> GetAllAsync(CancellationToken stoppingToken = default)
@@ -38,30 +39,35 @@ internal sealed class Store(string connectionString) : IStore
 
     public async Task SetAsync(IReadOnlyCollection<Setting> settings, CancellationToken stoppingToken = default)
     {
+        if (settings.Count == 0)
+            return;
+
         await using var conn = await OpenAsync(stoppingToken);
         await using var transaction = await conn.BeginTransactionAsync(stoppingToken);
- 
+
         try
         {
-            var sql = $"""
-                       INSERT INTO {Schema}.{SettingsTable} (key, value)
-                       VALUES (@key, @value)
-                       ON CONFLICT (key) DO UPDATE
-                           SET value      = EXCLUDED.value;
-                       """;
- 
+            const string sqlTemplate = """
+                                       INSERT INTO {0}.{1} (key, value)
+                                       VALUES (@key, @value)
+                                       ON CONFLICT (key) DO UPDATE
+                                           SET value = EXCLUDED.value;
+                                       """;
+            var sql = string.Format(sqlTemplate, Schema, SettingsTable);
+
+            // Prepare the command once and re-bind parameters per row.
+            await using var cmd = new NpgsqlCommand(sql, conn, transaction);
+            var keyParam = cmd.Parameters.Add(new NpgsqlParameter("key", NpgsqlTypes.NpgsqlDbType.Text));
+            var valueParam = cmd.Parameters.Add(new NpgsqlParameter("value", NpgsqlTypes.NpgsqlDbType.Text));
+            await cmd.PrepareAsync(stoppingToken);
+
             foreach (var setting in settings)
             {
-                await using var cmd = new NpgsqlCommand(sql, conn, transaction);
-                cmd.Parameters.AddWithValue("key", setting.Key);
-                cmd.Parameters.Add(new NpgsqlParameter("value", NpgsqlTypes.NpgsqlDbType.Text)
-                {
-                    Value = (object?)setting.Value ?? DBNull.Value,
-                });
- 
+                keyParam.Value = setting.Key;
+                valueParam.Value = (object?)setting.Value ?? DBNull.Value;
                 await cmd.ExecuteNonQueryAsync(stoppingToken);
             }
- 
+
             await transaction.CommitAsync(stoppingToken);
         }
         catch
@@ -71,18 +77,15 @@ internal sealed class Store(string connectionString) : IStore
         }
     }
 
-    private async Task EnsureSchemaExistsAsync(CancellationToken ct)
+    private static async Task EnsureSchemaExistsAsync(NpgsqlConnection conn, CancellationToken ct)
     {
-        await using var conn = await OpenAsync(ct);
         await using var cmd = new NpgsqlCommand(
             $"CREATE SCHEMA IF NOT EXISTS \"{Schema}\"", conn);
         await cmd.ExecuteNonQueryAsync(ct);
     }
- 
-    private async Task EnsureTableExistsAsync(CancellationToken ct)
+
+    private static async Task EnsureTableExistsAsync(NpgsqlConnection conn, CancellationToken ct)
     {
-        await using var conn = await OpenAsync(ct);
- 
         var sql = $"""
                    CREATE TABLE IF NOT EXISTS {Schema}.{SettingsTable} (
                        key        TEXT        NOT NULL,
@@ -90,7 +93,7 @@ internal sealed class Store(string connectionString) : IStore
                        CONSTRAINT pk_{SettingsTable} PRIMARY KEY (key)
                    );
                    """;
- 
+
         await using var cmd = new NpgsqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync(ct);
     }

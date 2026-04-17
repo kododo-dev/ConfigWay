@@ -1,6 +1,8 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import InputBase from '@mui/material/InputBase';
+import Tooltip from '@mui/material/Tooltip';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { Field } from '../../api/api.model';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
@@ -21,15 +23,15 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  const borderColor        = isDark ? '#2e2e2e' : '#ddd';
-  const borderHoverColor   = isDark ? '#444'    : '#bbb';
-  const borderFocusColor   = theme.palette.primary.main;
-  const inputBg            = isDark ? '#141414' : '#ffffff';
+  const borderColor      = isDark ? '#2e2e2e' : '#ddd';
+  const borderHoverColor = isDark ? '#444'    : '#bbb';
+  const borderFocusColor = theme.palette.primary.main;
+  const inputBg          = isDark ? '#141414' : '#ffffff';
 
   return (
     <Box sx={{
       display: 'flex',
-      alignItems: 'flex-start',   // top-align so label stays at top when input grows
+      alignItems: 'flex-start',
       gap: 2,
       pl: 2 + depth * 2,
       pr: 1.5,
@@ -38,21 +40,33 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
       '&:last-child': { borderBottom: 'none' },
       minHeight: 44,
     }}>
-      {/* Field label — vertically centred for single-line, top-aligned for multiline */}
-      <Typography sx={{
-        ...MONO,
-        fontSize: '0.78rem',
-        color: theme.palette.text.secondary,
-        width: 180,
-        flexShrink: 0,
-        // Nudge label to align with first line of input (py: 0.75 + inner padding ~6px)
-        pt: '7px',
-        lineHeight: 1.4,
-      }}>
-        <Highlight text={field.name} query={searchQuery} />
-      </Typography>
+      {/* Field label */}
+      <Box sx={{ width: 180, flexShrink: 0, pt: '7px', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+        <Typography sx={{
+          ...MONO,
+          fontSize: '0.78rem',
+          color: theme.palette.text.secondary,
+          lineHeight: 1.4,
+          flex: 1,
+        }}>
+          <Highlight text={field.name} query={searchQuery} />
+        </Typography>
 
-      {/* Auto-growing textarea via InputBase multiline */}
+        {field.description && (
+          <Tooltip title={field.description} placement="top" arrow>
+            <InfoOutlinedIcon sx={{
+              fontSize: 13,
+              color: isDark ? '#444' : '#ccc',
+              cursor: 'help',
+              mt: '1px',
+              flexShrink: 0,
+              '&:hover': { color: theme.palette.text.secondary },
+            }} />
+          </Tooltip>
+        )}
+      </Box>
+
+      {/* Auto-growing textarea */}
       <InputBase
         value={draft}
         onChange={e => onChange(field.key, e.target.value)}
@@ -74,13 +88,12 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
           transition: 'border-color 0.15s',
           '&:hover': { borderColor: borderHoverColor },
           '&.Mui-focused': { borderColor: borderFocusColor },
-          // Textarea inherits font from InputBase sx — override explicitly
           '& textarea': {
             ...MONO,
             fontSize: '0.78rem',
             color: theme.palette.text.primary,
             lineHeight: 1.5,
-            resize: 'none',       // let minRows/auto-grow handle sizing
+            resize: 'none',
             p: 0,
           },
           '& textarea::placeholder': {

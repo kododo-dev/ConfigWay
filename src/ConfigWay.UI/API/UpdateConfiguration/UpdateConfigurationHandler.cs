@@ -69,7 +69,25 @@ internal class UpdateConfigurationHandler(
             foreach (var validator in services.GetServices(validatorType))
             {
                 var method = validatorType.GetMethod(nameof(IValidateOptions<object>.Validate))!;
-                var result = (ValidateOptionsResult)method.Invoke(validator, [null, instance])!;
+
+                ValidateOptionsResult result;
+                try
+                {
+                    result = (ValidateOptionsResult)method.Invoke(validator, [null, instance])!;
+                }
+                catch (TargetInvocationException tie)
+                {
+                    // Surface the original validator error as a regular validation failure
+                    // instead of letting a reflective call crash the request with a 500.
+                    var inner = tie.InnerException ?? tie;
+                    errors.Add($"{options.Key}: validator '{validator?.GetType().Name}' threw {inner.GetType().Name}: {inner.Message}");
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"{options.Key}: validator '{validator?.GetType().Name}' threw {ex.GetType().Name}: {ex.Message}");
+                    continue;
+                }
 
                 if (result.Failed)
                     errors.AddRange(result.Failures);

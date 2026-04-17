@@ -4,4 +4,5 @@ internal record Section(
     string Key,
     string Name,
     Section[] Sections,
-    Field[] Fields);
+    Field[] Fields,
+    string? Description);

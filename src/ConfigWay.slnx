@@ -8,4 +8,8 @@
   <Project Path="ConfigWay.Core/ConfigWay.Core.csproj" />
   <Project Path="ConfigWay.UI/ConfigWay.UI.csproj" />
   <Project Path="ConfigWay/ConfigWay.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="ConfigWay.Tests/ConfigWay.Tests.csproj" />
+    <Project Path="ConfigWay.PostgreSQL.Tests/ConfigWay.PostgreSQL.Tests.csproj" />
+  </Folder>
 </Solution>

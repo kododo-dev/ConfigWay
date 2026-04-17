@@ -3,7 +3,7 @@
     <ItemGroup>
         <EmbeddedResource Include="SPA\dist\**\*" />
     </ItemGroup>
-    
+
     <PropertyGroup>
         <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     </PropertyGroup>
@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Kododo.Reiho.AspNetCore" Version="0.0.7" />
+        <PackageReference Include="Kododo.Reiho.AspNetCore" Version="0.0.9" />
         <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
     </ItemGroup>
 
@@ -26,6 +26,12 @@
         <None Include=".nuget\README.md" Pack="true" PackagePath="" />
     </ItemGroup>
 
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Kododo.ConfigWay.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.UI</PackageId>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -34,5 +40,5 @@
         <PackageIcon>logo.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
-    
+
 </Project>
