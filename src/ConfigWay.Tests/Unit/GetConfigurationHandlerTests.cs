@@ -510,6 +510,101 @@ public class GetConfigurationHandlerTests
         item.Fields.Single(f => f.Key == "Priority").DefaultValue.Should().Be("5");
     }
 
+    [Fact]
+    public async Task Handle_NonPasswordProperty_IsSensitiveFalse()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Username").IsSensitive
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_PasswordProperty_IsSensitiveTrue()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").IsSensitive
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_SensitiveField_NoStoredValue_ValueIsNull()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").Value
+            .Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_SensitiveField_WithStoredValue_ValueIsMasked()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["S:Password"] = "secret123" },
+            new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").Value
+            .Should().Be("***");
+    }
+
+    [Fact]
+    public async Task Handle_SensitiveField_ActualValueNeverReturned()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["S:ApiKey"] = "my-actual-key" },
+            new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var field = sections.Single().Fields.Single(f => f.Key == "ApiKey");
+        field.Value.Should().NotBe("my-actual-key");
+    }
+
+    [Fact]
+    public async Task Handle_SensitiveField_WithDefaultValue_DefaultValueIsMasked()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["S:Password"] = "base-secret" },
+            new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").DefaultValue
+            .Should().Be("***");
+    }
+
+    [Fact]
+    public async Task Handle_SensitiveField_NoDefaultValue_DefaultValueIsNull()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").DefaultValue
+            .Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_NestedSensitiveField_IsSensitiveTrue()
+    {
+        var handler = CreateHandler(new CoreOptions("NS", typeof(NestedSensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var creds = sections.Single().Sections.Single(s => s.Key == "Credentials");
+        creds.Fields.Single(f => f.Key == "Secret").IsSensitive
+            .Should().BeTrue();
+    }
+
     private GetConfigurationHandler CreateHandler(params CoreOptions[] options) =>
         CreateHandlerWithData(new Dictionary<string, string?>(), options);
 

@@ -263,6 +263,7 @@ const SimpleItemEditor = ({ index, arrayPrefix, item, draft, onChange, depth, se
     type:         (item.type ?? 'String') as 'String' | 'Bool' | 'Number' | 'Enum',
     value:        item.value,
     defaultValue: item.defaultValue,
+    isSensitive:  false,
     description:  null,
     options:      item.options ?? null,
   };

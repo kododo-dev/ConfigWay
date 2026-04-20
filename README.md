@@ -106,6 +106,29 @@ Resetting removes the ConfigWay-stored override so the original value from those
 
 Pending resets are batched with any other edits and applied together when the **Save** button is pressed. Pressing **Discard** also discards pending resets.
 
+## Sensitive fields
+
+Mark any `string` property with `[DataType(DataType.Password)]` from `System.ComponentModel.DataAnnotations` to treat it as a sensitive field:
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+
+public class SmtpCredentials
+{
+    public string Username { get; set; } = string.Empty;
+
+    [DataType(DataType.Password)]
+    public string Password { get; set; } = string.Empty;
+}
+```
+
+Sensitive fields behave as follows:
+
+- **UI** — the input renders as a password field (`●●●●●`). A placeholder indicates whether a value is currently stored.
+- **API** — the real value is never returned. When a value is stored, the API returns `"***"`. When nothing is stored, it returns `null`.
+- **Saving** — submitting an empty value for a sensitive field is treated as "no change". To remove a stored sensitive value, use the ↩ reset button.
+- **Reset** — the ↩ button appears when a sensitive value is stored. Resetting deletes the stored value; the underlying configuration layer (appsettings.json, environment variable) takes effect again without a restart.
+
 ## Customizing UI labels and descriptions
 
 Use `[Display]` from `System.ComponentModel.DataAnnotations` to control how options appear in the UI.

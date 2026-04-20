@@ -8,7 +8,7 @@ import PageHeader from '../components/layout/PageHeader';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 import { saveSettings } from '../api/api';
-import { collectFields, buildDraftFromSections, getChangedSettings } from '../utils/settings';
+import { collectFields, buildDraftFromSections, getChangedSettings, SENSITIVE_MASK, SENSITIVE_RESET } from '../utils/settings';
 import type { ResetPatch } from '../utils/settings';
 
 const AllSettingsPage = () => {
@@ -86,7 +86,11 @@ const AllSettingsPage = () => {
 
   const hasChanges =
     keysToDelete.length > 0 ||
-    Object.entries(allOriginal).some(([k, v]) => draft[k] !== (v ?? '')) ||
+    Object.entries(allOriginal).some(([k, v]) =>
+      v === SENSITIVE_MASK
+        ? (draft[k] !== '' && draft[k] !== SENSITIVE_RESET)
+        : draft[k] !== (v ?? '')
+    ) ||
     Object.keys(draft).some(k => !(k in allOriginal));
 
   const handleDiscard = useCallback(() => {

@@ -6,5 +6,6 @@ internal record Field(
     FieldType Type,
     string? Value,
     string? DefaultValue,
+    bool IsSensitive,
     string? Description,
     EnumOption[]? Options);

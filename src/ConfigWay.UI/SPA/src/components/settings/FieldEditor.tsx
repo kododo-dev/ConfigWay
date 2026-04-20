@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import RestoreIcon from '@mui/icons-material/Restore';
 import type { Field } from '../../api/api.model';
+import { SENSITIVE_RESET } from '../../utils/settings';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 import Highlight from '../common/Highlight';
@@ -35,7 +36,11 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
   const borderFocusColor = theme.palette.primary.main;
   const inputBg          = isDark ? '#141414' : '#ffffff';
 
-  const isOverridden = onReset != null && draft !== (field.defaultValue ?? '');
+  const isOverridden = onReset != null && (
+    field.isSensitive
+      ? draft !== SENSITIVE_RESET && (draft !== '' || field.value !== null)
+      : draft !== (field.defaultValue ?? '')
+  );
 
   const renderInput = () => {
     switch (field.type) {
@@ -111,6 +116,37 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
         );
 
       default:
+        if (field.isSensitive) {
+          return (
+            <InputBase
+              value={draft === SENSITIVE_RESET ? '' : draft}
+              onChange={e => onChange(fullKey, e.target.value)}
+              placeholder={draft === SENSITIVE_RESET ? t.notSet : (field.value !== null ? '●●●●●●●●' : t.notSet)}
+              type="password"
+              fullWidth
+              sx={{
+                ...MONO,
+                fontSize: '0.78rem',
+                color: theme.palette.text.primary,
+                background: inputBg,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '4px',
+                px: 1,
+                py: '6px',
+                lineHeight: 1.5,
+                transition: 'border-color 0.15s',
+                '&:hover': { borderColor: borderHoverColor },
+                '&.Mui-focused': { borderColor: borderFocusColor },
+                '& input': { ...MONO, fontSize: '0.78rem', p: 0 },
+                '& input::placeholder': {
+                  color: isDark ? '#444' : '#bbb',
+                  fontStyle: 'italic',
+                  opacity: 1,
+                },
+              }}
+            />
+          );
+        }
         return (
           <InputBase
             value={draft}

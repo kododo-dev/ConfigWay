@@ -456,6 +456,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         string Type,
         string? Value,
         string? DefaultValue,
+        bool IsSensitive,
         string? Description,
         EnumOptionDto[]? Options);
 
@@ -636,6 +637,182 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         string Type,
         string? Value,
         string? DefaultValue,
+        bool IsSensitive,
+        string? Description,
+        EnumOptionDto[]? Options);
+
+    private sealed record ArrayFieldDto(
+        string Key,
+        string? Name,
+        bool IsSimple,
+        ArrayItemDto[] Items,
+        ArrayItemDto Template);
+
+    private sealed record ArrayItemDto(
+        int Index,
+        bool IsDeletable,
+        string? Value,
+        string? DefaultValue,
+        string? Type,
+        FieldDto[] Fields);
+
+    private sealed record EnumOptionDto(string Value, string Label);
+}
+
+public class ConfigurationApiSensitiveTests : IAsyncLifetime
+{
+    private WebApplication _app    = null!;
+    private HttpClient     _client = null!;
+
+    private static readonly JsonSerializerOptions JsonOpts =
+        new(JsonSerializerDefaults.Web);
+
+    public async Task InitializeAsync()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+
+        builder.AddConfigWay(x =>
+        {
+            x.AddOptions<SensitiveOptions>("Sensitive");
+            x.AddOptions<NestedSensitiveOptions>("Nested");
+            x.AddUiEditor();
+        });
+
+        _app = builder.Build();
+        _app.UseConfigWay();
+
+        await _app.StartAsync();
+        _client = _app.GetTestClient();
+    }
+
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _app.StopAsync();
+        await _app.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_PasswordField_IsSensitiveTrue()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.IsSensitive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_NonPasswordField_IsSensitiveFalse()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
+        field.IsSensitive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_SensitiveField_InitiallyValueIsNull()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.Value.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_ValueReturnedAsMask()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "secret123")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.Value.Should().Be("***");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_ActualValueNeverExposed()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:ApiKey", "real-key")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "ApiKey");
+        field.Value.Should().NotBe("real-key");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_CanBeOverwritten()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "first")]);
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "second")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.Value.Should().Be("***");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_DeletedValueBecomesNull()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "secret")]);
+        await PostUpdateConfiguration([], keysToDelete: ["Sensitive:Password"]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.Value.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_NestedSensitiveField_IsSensitiveTrue()
+    {
+        var sections = await FetchSections();
+        var creds = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Credentials");
+        creds.Fields.Single(f => f.Key == "Secret").IsSensitive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_NestedSensitiveField_ValueReturnedAsMask()
+    {
+        await PostUpdateConfiguration([new Setting("Nested:Credentials:Secret", "nested-secret")]);
+
+        var sections = await FetchSections();
+        var creds = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Credentials");
+        creds.Fields.Single(f => f.Key == "Secret").Value.Should().Be("***");
+    }
+
+    private Task<HttpResponseMessage> PostGetConfiguration() =>
+        _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });
+
+    private Task<HttpResponseMessage> PostUpdateConfiguration(
+        Setting[] settings,
+        string[]? keysToDelete = null)
+    {
+        var payload = new { Settings = settings, KeysToDelete = keysToDelete ?? [] };
+        var json    = JsonSerializer.Serialize(payload, JsonOpts);
+        return _client.PostAsync(
+            "/config/api/UpdateConfiguration",
+            new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+    }
+
+    private async Task<SectionDto[]> FetchSections()
+    {
+        var response = await PostGetConfiguration();
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<SectionDto[]>(JsonOpts))!;
+    }
+
+    private sealed record SectionDto(
+        string Key,
+        string? Name,
+        SectionDto[] Sections,
+        FieldDto[] Fields,
+        ArrayFieldDto[] Arrays,
+        string? Description);
+
+    private sealed record FieldDto(
+        string Key,
+        string? Name,
+        string Type,
+        string? Value,
+        string? DefaultValue,
+        bool IsSensitive,
         string? Description,
         EnumOptionDto[]? Options);
 

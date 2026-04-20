@@ -177,7 +177,7 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, onReset
                 fullKey={fk}
                 draft={draft[fk] ?? ''}
                 onChange={onChange}
-                onReset={() => onReset(buildFieldResetPatch(fk, field.defaultValue))}
+                onReset={() => onReset(buildFieldResetPatch(fk, field))}
                 depth={depth}
                 searchQuery={searchQuery}
               />
@@ -320,7 +320,7 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, onRese
                 fullKey={fk}
                 draft={draft[fk] ?? ''}
                 onChange={onChange}
-                onReset={() => onReset(buildFieldResetPatch(fk, field.defaultValue))}
+                onReset={() => onReset(buildFieldResetPatch(fk, field))}
                 depth={0}
                 searchQuery={searchQuery}
               />

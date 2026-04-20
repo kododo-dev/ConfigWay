@@ -68,12 +68,16 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
 
             if (IsLeaf(underlying))
             {
+                var isSensitive = IsSensitiveProperty(prop);
+                var rawValue    = appConfiguration[propFullKey];
+                var rawDefault  = _baseConfig[propFullKey];
                 fields.Add(new Field(
                     Key:          prop.Name,
                     Name:         propName,
                     Type:         MapFieldType(underlying),
-                    Value:        appConfiguration[propFullKey],
-                    DefaultValue: _baseConfig[propFullKey],
+                    Value:        isSensitive ? (rawValue  is null ? null : "***") : rawValue,
+                    DefaultValue: isSensitive ? (rawDefault is null ? null : "***") : rawDefault,
+                    IsSensitive:  isSensitive,
                     Description:  propDescription,
                     Options:      GetEnumOptions(underlying)));
             }
@@ -188,7 +192,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
         }
 
         var (fields, sections, arrays) = CollectContent("__template", elementType);
-        var emptyFields = fields.Select(f => f with { Value = null }).ToArray();
+        var emptyFields = fields.Select(f => f with { Value = null, DefaultValue = null }).ToArray();
 
         return new ArrayItem(
             Index:        -1,
@@ -201,6 +205,9 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
             Sections:     sections,
             Arrays:       arrays);
     }
+
+    private static bool IsSensitiveProperty(PropertyInfo prop) =>
+        prop.GetCustomAttribute<DataTypeAttribute>()?.DataType == DataType.Password;
 
     private static bool IsLeaf(Type t) =>
         t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;

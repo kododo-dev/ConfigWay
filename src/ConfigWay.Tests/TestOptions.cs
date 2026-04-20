@@ -100,3 +100,26 @@ internal class ComplexArrayOptions
 {
     public ItemOptions[] Items { get; set; } = [];
 }
+
+internal class SensitiveOptions
+{
+    public string Username { get; set; } = string.Empty;
+
+    [DataType(DataType.Password)]
+    public string Password { get; set; } = string.Empty;
+
+    [DataType(DataType.Password)]
+    public string ApiKey { get; set; } = string.Empty;
+}
+
+internal class NestedSensitiveOptions
+{
+    public string Name { get; set; } = string.Empty;
+    public SensitiveCredentials Credentials { get; set; } = new();
+}
+
+internal class SensitiveCredentials
+{
+    [DataType(DataType.Password)]
+    public string Secret { get; set; } = string.Empty;
+}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -7,7 +7,7 @@ import SectionCard from '../components/settings/SectionCard';
 import PageHeader from '../components/layout/PageHeader';
 import { useTheme } from '@mui/material/styles';
 import { saveSettings } from '../api/api';
-import { collectFields, buildDraft, getChangedSettings } from '../utils/settings';
+import { collectFields, buildDraft, getChangedSettings, SENSITIVE_MASK, SENSITIVE_RESET } from '../utils/settings';
 import type { ResetPatch } from '../utils/settings';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -80,13 +80,20 @@ const SectionPage = () => {
     setSaveErrors([]);
   }, []);
 
-  const original = section ? collectFields(section, section.key) : {};
+  const original = useMemo(
+    () => (section ? collectFields(section, section.key) : {}),
+    [section]
+  );
   const keysToDeleteSet = new Set(keysToDelete);
 
   const hasChanges = section
     ? (
         keysToDelete.length > 0 ||
-        Object.entries(original).some(([k, v]) => draft[k] !== (v ?? '')) ||
+        Object.entries(original).some(([k, v]) =>
+          v === SENSITIVE_MASK
+            ? (draft[k] !== '' && draft[k] !== SENSITIVE_RESET)
+            : draft[k] !== (v ?? '')
+        ) ||
         Object.keys(draft).some(k => !(k in original))
       )
     : false;

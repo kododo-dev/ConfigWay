@@ -4,6 +4,7 @@ export interface Field {
   type: 'String' | 'Bool' | 'Number' | 'Enum';
   value: string | null;
   defaultValue: string | null;
+  isSensitive: boolean;
   description: string | null;
   options: { value: string; label: string }[] | null;
 }

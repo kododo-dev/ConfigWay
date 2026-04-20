@@ -29,6 +29,7 @@ public class SmtpCredentials
     [Display(
         Name = "Password",
         Description = "SMTP account password. In production, inject via a secret manager and leave this blank.")]
+    [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 }
 
@@ -92,6 +93,7 @@ public class IdentityOptions
     public string ClientId { get; set; } = string.Empty;
 
     [Display(Name = "Client Secret", Description = "OIDC client secret. Rotate at least every 90 days.")]
+    [DataType(DataType.Password)]
     public string ClientSecret { get; set; } = string.Empty;
 
     [Display(Name = "Access Token Lifetime (minutes)", Description = "Target access token lifetime in minutes.")]
@@ -140,6 +142,7 @@ public class StorageCredentials
     public string AccessKeyId { get; set; } = string.Empty;
 
     [Display(Name = "Secret Access Key", Description = "IAM secret; prefer IRSA/managed identities in production.")]
+    [DataType(DataType.Password)]
     public string SecretAccessKey { get; set; } = string.Empty;
 }
 
@@ -189,6 +192,7 @@ public class WebhookEndpoint
     public string Url { get; set; } = string.Empty;
 
     [Display(Name = "HMAC Secret", Description = "Shared secret used to sign the X-Webhook-Signature header. Leave blank to disable signature verification.")]
+    [DataType(DataType.Password)]
     public string Secret { get; set; } = string.Empty;
 
     [Display(Name = "Event", Description = "Business event this endpoint subscribes to.")]
