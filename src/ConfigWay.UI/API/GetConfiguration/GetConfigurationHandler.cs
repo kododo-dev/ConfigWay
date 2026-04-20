@@ -69,12 +69,13 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
             if (IsLeaf(underlying))
             {
                 fields.Add(new Field(
-                    Key:         prop.Name,
-                    Name:        propName,
-                    Type:        MapFieldType(underlying),
-                    Value:       appConfiguration[propFullKey],
-                    Description: propDescription,
-                    Options:     GetEnumOptions(underlying)));
+                    Key:          prop.Name,
+                    Name:         propName,
+                    Type:         MapFieldType(underlying),
+                    Value:        appConfiguration[propFullKey],
+                    DefaultValue: _baseConfig[propFullKey],
+                    Description:  propDescription,
+                    Options:      GetEnumOptions(underlying)));
             }
             else if (IsArrayType(underlying, out var elementType))
             {
@@ -146,26 +147,28 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
         if (isSimple)
         {
             return new ArrayItem(
-                Index:       index,
-                IsDeletable: isDeletable,
-                Value:       appConfiguration[itemFullPrefix],
-                Type:        MapFieldType(elementType),
-                Options:     GetEnumOptions(elementType),
-                Fields:      [],
-                Sections:    [],
-                Arrays:      []);
+                Index:        index,
+                IsDeletable:  isDeletable,
+                Value:        appConfiguration[itemFullPrefix],
+                DefaultValue: _baseConfig[itemFullPrefix],
+                Type:         MapFieldType(elementType),
+                Options:      GetEnumOptions(elementType),
+                Fields:       [],
+                Sections:     [],
+                Arrays:       []);
         }
 
         var (fields, sections, arrays) = CollectContent(itemFullPrefix, elementType);
         return new ArrayItem(
-            Index:       index,
-            IsDeletable: isDeletable,
-            Value:       null,
-            Type:        null,
-            Options:     null,
-            Fields:      fields,
-            Sections:    sections,
-            Arrays:      arrays);
+            Index:        index,
+            IsDeletable:  isDeletable,
+            Value:        null,
+            DefaultValue: null,
+            Type:         null,
+            Options:      null,
+            Fields:       fields,
+            Sections:     sections,
+            Arrays:       arrays);
     }
 
     private ArrayItem BuildArrayTemplate(Type elementType, bool isSimple)
@@ -173,28 +176,30 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
         if (isSimple)
         {
             return new ArrayItem(
-                Index:       -1,
-                IsDeletable: true,
-                Value:       null,
-                Type:        MapFieldType(elementType),
-                Options:     GetEnumOptions(elementType),
-                Fields:      [],
-                Sections:    [],
-                Arrays:      []);
+                Index:        -1,
+                IsDeletable:  true,
+                Value:        null,
+                DefaultValue: null,
+                Type:         MapFieldType(elementType),
+                Options:      GetEnumOptions(elementType),
+                Fields:       [],
+                Sections:     [],
+                Arrays:       []);
         }
 
         var (fields, sections, arrays) = CollectContent("__template", elementType);
         var emptyFields = fields.Select(f => f with { Value = null }).ToArray();
 
         return new ArrayItem(
-            Index:       -1,
-            IsDeletable: true,
-            Value:       null,
-            Type:        null,
-            Options:     null,
-            Fields:      emptyFields,
-            Sections:    sections,
-            Arrays:      arrays);
+            Index:        -1,
+            IsDeletable:  true,
+            Value:        null,
+            DefaultValue: null,
+            Type:         null,
+            Options:      null,
+            Fields:       emptyFields,
+            Sections:     sections,
+            Arrays:       arrays);
     }
 
     private static bool IsLeaf(Type t) =>

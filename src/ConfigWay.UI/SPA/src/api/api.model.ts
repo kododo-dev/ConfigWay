@@ -3,6 +3,7 @@ export interface Field {
   name: string;
   type: 'String' | 'Bool' | 'Number' | 'Enum';
   value: string | null;
+  defaultValue: string | null;
   description: string | null;
   options: { value: string; label: string }[] | null;
 }
@@ -30,6 +31,7 @@ export interface ArrayItem {
   isDeletable: boolean;
   // simple arrays:
   value: string | null;
+  defaultValue: string | null;
   type: 'String' | 'Bool' | 'Number' | 'Enum' | null;
   options: { value: string; label: string }[] | null;
   // complex arrays:

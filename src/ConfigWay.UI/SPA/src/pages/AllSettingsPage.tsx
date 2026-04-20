@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
@@ -9,6 +9,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 import { saveSettings } from '../api/api';
 import { collectFields, buildDraftFromSections, getChangedSettings } from '../utils/settings';
+import type { ResetPatch } from '../utils/settings';
 
 const AllSettingsPage = () => {
   const { sections, loading, error: loadError, reload } = useSections();
@@ -36,6 +37,7 @@ const AllSettingsPage = () => {
       });
     } else {
       setDraft(prev => ({ ...prev, [key]: value }));
+      setKeysToDelete(prev => prev.filter(k => k !== key));
     }
     setSaveErrors([]);
   }, []);
@@ -51,15 +53,41 @@ const AllSettingsPage = () => {
     setSaveErrors([]);
   }, []);
 
+  const handleReset = useCallback(({ keysToDelete: resetKeys, draftPatch }: ResetPatch) => {
+    setKeysToDelete(prev => {
+      const next = [...prev];
+      for (const k of resetKeys) {
+        if (!next.includes(k)) next.push(k);
+      }
+      return next;
+    });
+    setDraft(prev => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(draftPatch)) {
+        if (v === '__DELETE__') {
+          delete next[k];
+        } else {
+          next[k] = v;
+        }
+      }
+      return next;
+    });
+    setSaveErrors([]);
+  }, []);
+
+  const keysToDeleteSet = new Set(keysToDelete);
+
+  const allOriginal = useMemo(
+    () => sections.reduce<Record<string, string | null>>(
+      (acc, section) => Object.assign(acc, collectFields(section, section.key)), {}
+    ),
+    [sections]
+  );
+
   const hasChanges =
     keysToDelete.length > 0 ||
-    sections.some(section => {
-      const original = collectFields(section, section.key);
-      return (
-        Object.entries(original).some(([k, v]) => draft[k] !== (v ?? '')) ||
-        Object.keys(draft).some(k => !(k in original))
-      );
-    });
+    Object.entries(allOriginal).some(([k, v]) => draft[k] !== (v ?? '')) ||
+    Object.keys(draft).some(k => !(k in allOriginal));
 
   const handleDiscard = useCallback(() => {
     setDraft(buildDraftFromSections(sections));
@@ -69,9 +97,7 @@ const AllSettingsPage = () => {
 
   const handleSave = useCallback(async () => {
     setSaveErrors([]);
-    const changed = sections.flatMap(section =>
-      getChangedSettings(collectFields(section, section.key), draft)
-    );
+    const changed = getChangedSettings(allOriginal, draft, keysToDeleteSet);
 
     if (changed.length === 0 && keysToDelete.length === 0) return;
 
@@ -90,7 +116,7 @@ const AllSettingsPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [sections, draft, keysToDelete, reload, t]);
+  }, [allOriginal, draft, keysToDelete, keysToDeleteSet, reload, t]);
 
   const hasNoResults = !loading && !!search && sections.every(s => {
     const q = search.toLowerCase();
@@ -154,6 +180,7 @@ const AllSettingsPage = () => {
             onChange={handleChange}
             onAdd={handleAdd}
             onRemove={handleRemove}
+            onReset={handleReset}
             searchQuery={search}
           />
         ))}

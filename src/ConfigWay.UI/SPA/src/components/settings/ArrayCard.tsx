@@ -7,6 +7,7 @@ import Collapse from '@mui/material/Collapse';
 import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
+import RestoreIcon from '@mui/icons-material/Restore';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import FolderIcon from '@mui/icons-material/Folder';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -16,7 +17,12 @@ import { useTheme } from '@mui/material/styles';
 import { useI18n } from '../../i18n/I18nContext';
 import FieldEditor from './FieldEditor';
 import type { ArrayField, ArrayItem } from '../../api/api.model';
-import { itemFullKey, itemFieldFullKey, buildNewItemDraft, collectItemKeys, nextArrayIndex } from '../../utils/settings';
+import {
+  itemFullKey, itemFieldFullKey,
+  buildNewItemDraft, collectItemKeys, nextArrayIndex,
+  buildArrayResetPatch, arrayHasOverrides,
+} from '../../utils/settings';
+import type { ResetPatch } from '../../utils/settings';
 import Highlight from '../common/Highlight';
 
 const MONO = { fontFamily: "'IBM Plex Mono', monospace" };
@@ -28,13 +34,13 @@ interface ArrayCardProps {
   onChange: (key: string, value: string) => void;
   onAdd: (patch: Record<string, string>) => void;
   onRemove: (keysToDelete: string[]) => void;
+  onReset: (patch: ResetPatch) => void;
   depth?: number;
   searchQuery?: string;
 }
 
-// We track "virtual" items added locally (not yet saved) by index
 const ArrayCard = ({
-  array, arrayPrefix, draft, onChange, onAdd, onRemove, depth = 0, searchQuery = '',
+  array, arrayPrefix, draft, onChange, onAdd, onRemove, onReset, depth = 0, searchQuery = '',
 }: ArrayCardProps) => {
   const theme  = useTheme();
   const { t }  = useI18n();
@@ -45,20 +51,25 @@ const ArrayCard = ({
   const headerBg     = isDark ? '#1e1e1e' : '#f5f5f5';
   const bg           = isDark ? '#242424' : '#fff';
 
-  // All indices currently in draft (includes locally added items)
-  const allIndices: number[] = Array.from(
-    new Set([
-      ...array.items.map(i => i.index),
-      ...Object.keys(draft)
-        .filter(k => k.startsWith(arrayPrefix + ':'))
-        .map(k => {
-          const rest = k.slice(arrayPrefix.length + 1);
-          const seg  = rest.split(':')[0];
-          return parseInt(seg, 10);
-        })
-        .filter(n => !isNaN(n)),
-    ])
-  ).sort((a, b) => a - b);
+  // Server items: always show non-deletable ones; show deletable ones only if their key is still in draft
+  const serverItemIndices = array.items
+    .filter(item => {
+      if (!item.isDeletable) return true;
+      if (array.isSimple) return itemFullKey(arrayPrefix, item.index) in draft;
+      return collectItemKeys(array, arrayPrefix, item.index).some(k => k in draft);
+    })
+    .map(i => i.index);
+
+  // Draft-only items: locally added, not yet saved (not in array.items)
+  const serverIndexSet = new Set(array.items.map(i => i.index));
+  const draftOnlyIndices = Object.keys(draft)
+    .filter(k => k.startsWith(arrayPrefix + ':'))
+    .map(k => parseInt(k.slice(arrayPrefix.length + 1).split(':')[0], 10))
+    .filter(n => !isNaN(n) && !serverIndexSet.has(n));
+
+  const allIndices: number[] = [...new Set([...serverItemIndices, ...draftOnlyIndices])].sort((a, b) => a - b);
+
+  const hasOverrides = arrayHasOverrides(array, arrayPrefix, draft);
 
   const handleAdd = () => {
     const newIndex = nextArrayIndex({ ...array, items: allIndices.map(i => ({ index: i } as ArrayItem)) });
@@ -67,19 +78,20 @@ const ArrayCard = ({
 
   const handleRemove = (index: number) => {
     const originalItem = array.items.find(i => i.index === index);
-    // Keys to delete from store: only keys that exist in original (server) items
     const serverKeys = originalItem
       ? collectItemKeys(array, arrayPrefix, index)
       : [];
-    // Keys to remove from draft (includes locally added items)
     const draftPrefix = itemFullKey(arrayPrefix, index) + ':';
     const simpleKey   = itemFullKey(arrayPrefix, index);
     const draftKeys   = Object.keys(draft).filter(
       k => k === simpleKey || k.startsWith(draftPrefix)
     );
     onRemove(serverKeys);
-    // Remove from draft immediately
     draftKeys.forEach(k => onChange(k, '__DELETE__'));
+  };
+
+  const handleReset = () => {
+    onReset(buildArrayResetPatch(array, arrayPrefix, draft));
   };
 
   const isSearching = !!searchQuery;
@@ -126,6 +138,17 @@ const ArrayCard = ({
             </Tooltip>
           )}
         </Box>
+        {hasOverrides && (
+          <Tooltip title={t.resetArray} placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={e => { e.stopPropagation(); handleReset(); }}
+              sx={{ color: isDark ? '#555' : '#ccc', p: '3px', '&:hover': { color: theme.palette.warning.main } }}
+            >
+              <RestoreIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title={collapsed ? t.expand : t.collapse}>
           <Box component="span" sx={{ display: 'flex', color: isDark ? '#444' : '#bbb' }}>
             {collapsed ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
@@ -137,7 +160,7 @@ const ArrayCard = ({
         <Box>
           {allIndices.map(index => {
             const serverItem = array.items.find(i => i.index === index);
-            const isDeletable = serverItem ? serverItem.isDeletable : true; // locally added = always deletable
+            const isDeletable = serverItem ? serverItem.isDeletable : true;
 
             return (
               <Box
@@ -235,13 +258,14 @@ interface SimpleItemEditorProps {
 const SimpleItemEditor = ({ index, arrayPrefix, item, draft, onChange, depth, searchQuery }: SimpleItemEditorProps) => {
   const fullKey = itemFullKey(arrayPrefix, index);
   const syntheticField = {
-    key: String(index),
-    name: '',
-    type: item.type ?? 'String',
-    value: item.value,
-    description: null,
-    options: item.options ?? null,
-  } as const;
+    key:          String(index),
+    name:         '',
+    type:         (item.type ?? 'String') as 'String' | 'Bool' | 'Number' | 'Enum',
+    value:        item.value,
+    defaultValue: item.defaultValue,
+    description:  null,
+    options:      item.options ?? null,
+  };
 
   return (
     <FieldEditor
@@ -317,8 +341,9 @@ const ComplexItemContent = ({
             arrayPrefix={`${itemPrefix}:${nestedArr.key}`}
             draft={draft}
             onChange={onChange}
-            onAdd={() => {}} // nested arrays: handled by parent page
+            onAdd={() => {}}
             onRemove={() => {}}
+            onReset={() => {}}
             depth={depth + 1}
             searchQuery={searchQuery}
           />

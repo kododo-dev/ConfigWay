@@ -7,6 +7,7 @@ using Kododo.ConfigWay.Core.Model;
 using Kododo.ConfigWay.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace Kododo.ConfigWay.Tests.Integration;
@@ -413,6 +414,34 @@ public class ConfigurationApiTests : IAsyncLifetime
         return (await response.Content.ReadFromJsonAsync<SectionDto[]>(JsonOpts))!;
     }
 
+    [Fact]
+    public async Task GetConfiguration_Field_DefaultValueNullWithNoBaseConfig()
+    {
+        var sections = await FetchSections();
+        sections.Single(s => s.Key == "Simple").Fields
+            .Should().AllSatisfy(f => f.DefaultValue.Should().BeNull());
+    }
+
+    [Fact]
+    public async Task GetConfiguration_ArrayItem_DefaultValueNullWithNoBaseConfig()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "tag1")]);
+
+        var sections = await FetchSections();
+        var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items.Single();
+        item.DefaultValue.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_ArrayItemAddedViaConfigWay_IsDeletable()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "tag1")]);
+
+        var sections = await FetchSections();
+        var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items.Single();
+        item.IsDeletable.Should().BeTrue();
+    }
+
     private sealed record SectionDto(
         string Key,
         string? Name,
@@ -426,6 +455,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         string? Name,
         string Type,
         string? Value,
+        string? DefaultValue,
         string? Description,
         EnumOptionDto[]? Options);
 
@@ -440,6 +470,187 @@ public class ConfigurationApiTests : IAsyncLifetime
         int Index,
         bool IsDeletable,
         string? Value,
+        string? DefaultValue,
+        string? Type,
+        FieldDto[] Fields);
+
+    private sealed record EnumOptionDto(string Value, string Label);
+}
+
+public class ConfigurationApiDefaultValueTests : IAsyncLifetime
+{
+    private WebApplication _app    = null!;
+    private HttpClient     _client = null!;
+
+    private static readonly JsonSerializerOptions JsonOpts =
+        new(JsonSerializerDefaults.Web);
+
+    public async Task InitializeAsync()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Simple:Name"]   = "DefaultName",
+            ["Simple:Value"]  = "DefaultValue",
+            ["Arrays:Tags:0"] = "base-tag",
+            ["Arrays:Tags:1"] = "base-tag-2",
+        });
+
+        builder.AddConfigWay(x =>
+        {
+            x.AddOptions<SimpleOptions>("Simple");
+            x.AddOptions<SimpleArrayOptions>("Arrays");
+            x.AddUiEditor();
+        });
+
+        _app = builder.Build();
+        _app.UseConfigWay();
+
+        await _app.StartAsync();
+        _client = _app.GetTestClient();
+    }
+
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _app.StopAsync();
+        await _app.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_WithBaseConfig_FieldDefaultValuePopulated()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
+        field.DefaultValue.Should().Be("DefaultName");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_WithBaseConfig_ValueAndDefaultValueMatchInitially()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
+        field.Value.Should().Be("DefaultName");
+        field.DefaultValue.Should().Be("DefaultName");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_Override_DefaultValueRemainsFromBaseConfig()
+    {
+        await PostUpdateConfiguration([new Setting("Simple:Name", "Override")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
+        field.Value.Should().Be("Override");
+        field.DefaultValue.Should().Be("DefaultName");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_DeleteOverride_ValueFallsBackToDefault()
+    {
+        await PostUpdateConfiguration([new Setting("Simple:Name", "Override")]);
+        await PostUpdateConfiguration([], keysToDelete: ["Simple:Name"]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
+        field.Value.Should().Be("DefaultName");
+        field.DefaultValue.Should().Be("DefaultName");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_BaseConfigArrayItem_DefaultValuePopulated()
+    {
+        var sections = await FetchSections();
+        var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
+        items.Single(i => i.Index == 0).DefaultValue.Should().Be("base-tag");
+        items.Single(i => i.Index == 1).DefaultValue.Should().Be("base-tag-2");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_BaseConfigArrayItem_IsNotDeletable()
+    {
+        var sections = await FetchSections();
+        var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
+        items.Should().AllSatisfy(i => i.IsDeletable.Should().BeFalse());
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_OverrideBaseArrayItem_DefaultValueUnchanged()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "overridden")]);
+
+        var sections = await FetchSections();
+        var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags")
+            .Items.Single(i => i.Index == 0);
+        item.Value.Should().Be("overridden");
+        item.DefaultValue.Should().Be("base-tag");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_DeleteBaseArrayItemOverride_ValueFallsBackToDefault()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "overridden")]);
+        await PostUpdateConfiguration([], keysToDelete: ["Arrays:Tags:0"]);
+
+        var sections = await FetchSections();
+        var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags")
+            .Items.Single(i => i.Index == 0);
+        item.Value.Should().Be("base-tag");
+        item.DefaultValue.Should().Be("base-tag");
+    }
+
+    private Task<HttpResponseMessage> PostGetConfiguration() =>
+        _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });
+
+    private Task<HttpResponseMessage> PostUpdateConfiguration(
+        Setting[] settings,
+        string[]? keysToDelete = null)
+    {
+        var payload = new { Settings = settings, KeysToDelete = keysToDelete ?? [] };
+        var json    = JsonSerializer.Serialize(payload, JsonOpts);
+        return _client.PostAsync(
+            "/config/api/UpdateConfiguration",
+            new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+    }
+
+    private async Task<SectionDto[]> FetchSections()
+    {
+        var response = await PostGetConfiguration();
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<SectionDto[]>(JsonOpts))!;
+    }
+
+    private sealed record SectionDto(
+        string Key,
+        string? Name,
+        SectionDto[] Sections,
+        FieldDto[] Fields,
+        ArrayFieldDto[] Arrays,
+        string? Description);
+
+    private sealed record FieldDto(
+        string Key,
+        string? Name,
+        string Type,
+        string? Value,
+        string? DefaultValue,
+        string? Description,
+        EnumOptionDto[]? Options);
+
+    private sealed record ArrayFieldDto(
+        string Key,
+        string? Name,
+        bool IsSimple,
+        ArrayItemDto[] Items,
+        ArrayItemDto Template);
+
+    private sealed record ArrayItemDto(
+        int Index,
+        bool IsDeletable,
+        string? Value,
+        string? DefaultValue,
         string? Type,
         FieldDto[] Fields);
 

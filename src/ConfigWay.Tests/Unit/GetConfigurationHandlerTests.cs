@@ -410,6 +410,106 @@ public class GetConfigurationHandlerTests
         item.Fields.Single(f => f.Key == "Name").Value.Should().Be("First");
     }
 
+    [Fact]
+    public async Task Handle_Field_DefaultValueNullWhenNotInBaseConfig()
+    {
+        var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields
+            .Single(f => f.Key == "Name").DefaultValue
+            .Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_Field_DefaultValuePopulatedFromBaseConfig()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["Simple:Name"] = "Alice" },
+            new CoreOptions("Simple", typeof(SimpleOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields
+            .Single(f => f.Key == "Name").DefaultValue
+            .Should().Be("Alice");
+    }
+
+    [Fact]
+    public async Task Handle_NestedField_DefaultValuePopulatedFromBaseConfig()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["Root:Child:ChildProp"] = "deep-default" },
+            new CoreOptions("Root", typeof(NestedOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var child = sections.Single().Sections.Single();
+        child.Fields.Single(f => f.Key == "ChildProp").DefaultValue
+            .Should().Be("deep-default");
+    }
+
+    [Fact]
+    public async Task Handle_SimpleArrayItem_DefaultValueFromBaseConfig()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["A:Tags:0"] = "alpha", ["A:Tags:1"] = "beta" },
+            new CoreOptions("A", typeof(SimpleArrayOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var items = sections.Single().Arrays.Single(a => a.Key == "Tags").Items;
+        items.Single(i => i.Index == 0).DefaultValue.Should().Be("alpha");
+        items.Single(i => i.Index == 1).DefaultValue.Should().Be("beta");
+    }
+
+    [Fact]
+    public async Task Handle_ComplexArrayItem_DefaultValueIsNull()
+    {
+        var handler = CreateHandlerWithData(
+            new()
+            {
+                ["C:Items:0:Name"]     = "First",
+                ["C:Items:0:Priority"] = "1",
+            },
+            new CoreOptions("C", typeof(ComplexArrayOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var item = sections.Single().Arrays.Single(a => a.Key == "Items").Items.Single();
+        item.DefaultValue.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ArrayTemplate_DefaultValueIsNull()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var template = sections.Single().Arrays.Single(a => a.Key == "Tags").Template;
+        template.DefaultValue.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ComplexArrayItemField_DefaultValueFromBaseConfig()
+    {
+        var handler = CreateHandlerWithData(
+            new()
+            {
+                ["C:Items:0:Name"]     = "First",
+                ["C:Items:0:Priority"] = "5",
+            },
+            new CoreOptions("C", typeof(ComplexArrayOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        var item = sections.Single().Arrays.Single(a => a.Key == "Items").Items.Single();
+        item.Fields.Single(f => f.Key == "Name").DefaultValue.Should().Be("First");
+        item.Fields.Single(f => f.Key == "Priority").DefaultValue.Should().Be("5");
+    }
+
     private GetConfigurationHandler CreateHandler(params CoreOptions[] options) =>
         CreateHandlerWithData(new Dictionary<string, string?>(), options);
 

@@ -21,6 +21,9 @@ export const translations = {
     unexpectedError: 'Unexpected error',
     addItem: 'Add item',
     removeItem: 'Remove',
+    resetField: 'Reset to default',
+    resetSection: 'Reset section to defaults',
+    resetArray: 'Reset array to defaults',
   },
   pl: {
     appTitle: 'Konfiguracja',
@@ -42,6 +45,9 @@ export const translations = {
     unexpectedError: 'Niespodziewany błąd',
     addItem: 'Dodaj element',
     removeItem: 'Usuń',
+    resetField: 'Przywróć domyślną wartość',
+    resetSection: 'Przywróć sekcję do wartości domyślnych',
+    resetArray: 'Przywróć tablicę do wartości domyślnych',
   },
 } as const;
 

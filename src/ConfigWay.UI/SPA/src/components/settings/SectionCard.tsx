@@ -9,13 +9,15 @@ import FolderIcon from '@mui/icons-material/Folder';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RestoreIcon from '@mui/icons-material/Restore';
 import FieldEditor from './FieldEditor';
 import ArrayCard from './ArrayCard';
 import type { Section, Field } from '../../api/api.model';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 import Highlight from '../common/Highlight';
-import { fieldFullKey } from '../../utils/settings';
+import { fieldFullKey, buildFieldResetPatch, buildSectionResetPatch, sectionHasOverrides } from '../../utils/settings';
+import type { ResetPatch } from '../../utils/settings';
 
 export interface SectionCardProps {
   section: Section;
@@ -24,6 +26,7 @@ export interface SectionCardProps {
   onChange: (key: string, value: string) => void;
   onAdd: (patch: Record<string, string>) => void;
   onRemove: (keysToDelete: string[]) => void;
+  onReset: (patch: ResetPatch) => void;
   depth?: number;
   searchQuery?: string;
 }
@@ -90,11 +93,12 @@ interface SubSectionProps {
   onChange: (key: string, value: string) => void;
   onAdd: (patch: Record<string, string>) => void;
   onRemove: (keysToDelete: string[]) => void;
+  onReset: (patch: ResetPatch) => void;
   depth: number;
   searchQuery: string;
 }
 
-const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, searchQuery }: SubSectionProps) => {
+const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, onReset, depth, searchQuery }: SubSectionProps) => {
   const [userCollapsed, setUserCollapsed] = useState(false);
   const theme = useTheme();
   const { t } = useI18n();
@@ -103,6 +107,8 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
 
   const isSearching = !!searchQuery;
   const collapsed = isSearching ? false : userCollapsed;
+
+  const hasOverrides = sectionHasOverrides(section, prefix, draft);
 
   const visibleFields = isSearching
     ? section.fields.filter(f => {
@@ -141,6 +147,17 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
           </Typography>
           {section.description && <DescriptionBadge description={section.description} isDark={isDark} />}
         </Box>
+        {hasOverrides && !isSearching && (
+          <Tooltip title={t.resetSection} placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={e => { e.stopPropagation(); onReset(buildSectionResetPatch(section, prefix, draft)); }}
+              sx={{ color: isDark ? '#555' : '#ccc', p: '3px', '&:hover': { color: theme.palette.warning.main } }}
+            >
+              <RestoreIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {!isSearching && (
           <Tooltip title={collapsed ? t.expand : t.collapse}>
             <Box component="span" sx={{ display: 'flex', color: isDark ? '#444' : '#bbb' }}>
@@ -160,6 +177,7 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
                 fullKey={fk}
                 draft={draft[fk] ?? ''}
                 onChange={onChange}
+                onReset={() => onReset(buildFieldResetPatch(fk, field.defaultValue))}
                 depth={depth}
                 searchQuery={searchQuery}
               />
@@ -176,6 +194,7 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
                   onChange={onChange}
                   onAdd={onAdd}
                   onRemove={onRemove}
+                  onReset={onReset}
                   depth={depth + 1}
                   searchQuery={searchQuery}
                 />
@@ -193,6 +212,7 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
                   onChange={onChange}
                   onAdd={onAdd}
                   onRemove={onRemove}
+                  onReset={onReset}
                   depth={depth}
                   searchQuery={searchQuery}
                 />
@@ -205,7 +225,7 @@ const SubSection = ({ section, prefix, draft, onChange, onAdd, onRemove, depth, 
   );
 };
 
-const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth = 0, searchQuery = '' }: SectionCardProps) => {
+const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, onReset, depth = 0, searchQuery = '' }: SectionCardProps) => {
   const [userCollapsed, setUserCollapsed] = useState(false);
   const theme = useTheme();
   const { t } = useI18n();
@@ -214,6 +234,8 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth 
 
   const isSearching = !!searchQuery;
   const collapsed = isSearching ? false : userCollapsed;
+
+  const hasOverrides = sectionHasOverrides(section, prefix, draft);
 
   const visibleFields = isSearching
     ? section.fields.filter(f => {
@@ -263,6 +285,17 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth 
             {section.description && <DescriptionBadge description={section.description} isDark={isDark} />}
           </Box>
         </Box>
+        {hasOverrides && !isSearching && (
+          <Tooltip title={t.resetSection} placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={() => onReset(buildSectionResetPatch(section, prefix, draft))}
+              sx={{ color: isDark ? '#555' : '#ccc', '&:hover': { color: theme.palette.warning.main } }}
+            >
+              <RestoreIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {!isSearching && (
           <Tooltip title={collapsed ? t.expand : t.collapse}>
             <IconButton
@@ -287,6 +320,7 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth 
                 fullKey={fk}
                 draft={draft[fk] ?? ''}
                 onChange={onChange}
+                onReset={() => onReset(buildFieldResetPatch(fk, field.defaultValue))}
                 depth={0}
                 searchQuery={searchQuery}
               />
@@ -303,6 +337,7 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth 
                   onChange={onChange}
                   onAdd={onAdd}
                   onRemove={onRemove}
+                  onReset={onReset}
                   depth={1}
                   searchQuery={searchQuery}
                 />
@@ -320,6 +355,7 @@ const SectionCard = ({ section, prefix, draft, onChange, onAdd, onRemove, depth 
                   onChange={onChange}
                   onAdd={onAdd}
                   onRemove={onRemove}
+                  onReset={onReset}
                   depth={0}
                   searchQuery={searchQuery}
                 />

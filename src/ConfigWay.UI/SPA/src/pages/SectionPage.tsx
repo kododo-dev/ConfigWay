@@ -8,6 +8,7 @@ import PageHeader from '../components/layout/PageHeader';
 import { useTheme } from '@mui/material/styles';
 import { saveSettings } from '../api/api';
 import { collectFields, buildDraft, getChangedSettings } from '../utils/settings';
+import type { ResetPatch } from '../utils/settings';
 import { useI18n } from '../i18n/I18nContext';
 
 const SectionPage = () => {
@@ -41,6 +42,7 @@ const SectionPage = () => {
       });
     } else {
       setDraft(prev => ({ ...prev, [key]: value }));
+      setKeysToDelete(prev => prev.filter(k => k !== key));
     }
     setSaveErrors([]);
   }, []);
@@ -56,7 +58,31 @@ const SectionPage = () => {
     setSaveErrors([]);
   }, []);
 
+  const handleReset = useCallback(({ keysToDelete: resetKeys, draftPatch }: ResetPatch) => {
+    setKeysToDelete(prev => {
+      const next = [...prev];
+      for (const k of resetKeys) {
+        if (!next.includes(k)) next.push(k);
+      }
+      return next;
+    });
+    setDraft(prev => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(draftPatch)) {
+        if (v === '__DELETE__') {
+          delete next[k];
+        } else {
+          next[k] = v;
+        }
+      }
+      return next;
+    });
+    setSaveErrors([]);
+  }, []);
+
   const original = section ? collectFields(section, section.key) : {};
+  const keysToDeleteSet = new Set(keysToDelete);
+
   const hasChanges = section
     ? (
         keysToDelete.length > 0 ||
@@ -76,7 +102,11 @@ const SectionPage = () => {
   const handleSave = useCallback(async () => {
     if (!section) return;
     setSaveErrors([]);
-    const changed = getChangedSettings(collectFields(section, section.key), draft);
+    const changed = getChangedSettings(
+      collectFields(section, section.key),
+      draft,
+      keysToDeleteSet
+    );
 
     if (changed.length === 0 && keysToDelete.length === 0) return;
 
@@ -95,7 +125,7 @@ const SectionPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [section, draft, keysToDelete, reload, t]);
+  }, [section, draft, keysToDelete, keysToDeleteSet, reload, t]);
 
   if (loading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
@@ -126,6 +156,7 @@ const SectionPage = () => {
           onChange={handleChange}
           onAdd={handleAdd}
           onRemove={handleRemove}
+          onReset={handleReset}
           searchQuery={search}
         />
       </Box>

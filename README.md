@@ -92,6 +92,20 @@ public class WebhooksOptions
 
 Items that come from lower configuration layers (appsettings.json, environment variables) are marked as non-deletable — they can be edited but not removed, because deleting them from the ConfigWay store would not suppress the underlying value.
 
+## Reset to default
+
+Every field, section and array exposes a **↩ reset** button that appears when the current value differs from the value in the underlying configuration layers (appsettings.json, environment variables, etc.).
+
+Resetting removes the ConfigWay-stored override so the original value from those lower layers takes effect again, without restarting the application.
+
+| Scope | Behaviour |
+|---|---|
+| **Field** | Removes the single key from the ConfigWay store. The ↩ button is shown only when the field differs from its base-config value. |
+| **Section** | Resets all fields and arrays inside the section recursively. Items added via ConfigWay are removed; non-deletable items are reset to their base-config values. |
+| **Array** | Items added via ConfigWay are removed. Non-deletable items (those that exist in lower config layers) have their values reset to the base-config value. |
+
+Pending resets are batched with any other edits and applied together when the **Save** button is pressed. Pressing **Discard** also discards pending resets.
+
 ## Customizing UI labels and descriptions
 
 Use `[Display]` from `System.ComponentModel.DataAnnotations` to control how options appear in the UI.

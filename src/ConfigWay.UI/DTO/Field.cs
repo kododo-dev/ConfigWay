@@ -1,9 +1,10 @@
-﻿namespace Kododo.ConfigWay.UI.DTO;
+namespace Kododo.ConfigWay.UI.DTO;
 
 internal record Field(
     string Key,
     string Name,
     FieldType Type,
     string? Value,
+    string? DefaultValue,
     string? Description,
     EnumOption[]? Options);

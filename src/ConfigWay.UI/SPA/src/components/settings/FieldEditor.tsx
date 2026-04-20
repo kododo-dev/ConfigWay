@@ -5,7 +5,9 @@ import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RestoreIcon from '@mui/icons-material/Restore';
 import type { Field } from '../../api/api.model';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
@@ -16,13 +18,14 @@ interface FieldEditorProps {
   fullKey: string;
   draft: string;
   onChange: (key: string, value: string) => void;
+  onReset?: () => void;
   depth?: number;
   searchQuery?: string;
 }
 
 const MONO = { fontFamily: "'IBM Plex Mono', monospace" };
 
-const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery = '' }: FieldEditorProps) => {
+const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, searchQuery = '' }: FieldEditorProps) => {
   const { t } = useI18n();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -31,6 +34,8 @@ const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery =
   const borderHoverColor = isDark ? '#444'    : '#bbb';
   const borderFocusColor = theme.palette.primary.main;
   const inputBg          = isDark ? '#141414' : '#ffffff';
+
+  const isOverridden = onReset != null && draft !== (field.defaultValue ?? '');
 
   const renderInput = () => {
     switch (field.type) {
@@ -53,7 +58,7 @@ const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery =
           <InputBase
             value={draft}
             onChange={e => onChange(fullKey, e.target.value)}
-            placeholder={field.value ?? t.notSet}
+            placeholder={field.defaultValue || t.notSet}
             inputProps={{ inputMode: 'numeric', pattern: '[0-9]*[.,]?[0-9]*' }}
             fullWidth
             sx={{
@@ -110,7 +115,7 @@ const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery =
           <InputBase
             value={draft}
             onChange={e => onChange(fullKey, e.target.value)}
-            placeholder={field.value ?? t.notSet}
+            placeholder={field.defaultValue || t.notSet}
             fullWidth
             multiline
             minRows={1}
@@ -188,6 +193,25 @@ const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery =
       {/* Field input */}
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
         {renderInput()}
+      </Box>
+
+      {/* Reset button */}
+      <Box sx={{ display: 'flex', alignItems: 'center', height: 36, flexShrink: 0 }}>
+        {isOverridden && (
+          <Tooltip title={t.resetField} placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={onReset}
+              sx={{
+                color: isDark ? '#555' : '#ccc',
+                p: '3px',
+                '&:hover': { color: theme.palette.warning.main },
+              }}
+            >
+              <RestoreIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
     </Box>
   );

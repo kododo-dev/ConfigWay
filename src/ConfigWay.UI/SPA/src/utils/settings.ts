@@ -72,12 +72,14 @@ export function buildDraftFromSections(sections: Section[]): Record<string, stri
 
 export function getChangedSettings(
   original: Record<string, string | null>,
-  draft: Record<string, string>
+  draft: Record<string, string>,
+  keysToSkip?: Set<string>
 ): Setting[] {
   const result: Setting[] = [];
 
   // Modified existing keys
   for (const [k, v] of Object.entries(original)) {
+    if (keysToSkip?.has(k)) continue;
     if (draft[k] !== (v ?? '')) {
       result.push({ key: k, value: draft[k] === '' ? null : (draft[k] ?? null) });
     }
@@ -85,12 +87,163 @@ export function getChangedSettings(
 
   // Newly added keys (from Add item — not present in original)
   for (const [k, v] of Object.entries(draft)) {
+    if (keysToSkip?.has(k)) continue;
     if (!(k in original) && v !== '') {
       result.push({ key: k, value: v });
     }
   }
 
   return result;
+}
+
+// ── Override detection ────────────────────────────────────────────────────────
+
+/** Returns true if any field in the section (or its subsections/arrays) differs from its default. */
+export function sectionHasOverrides(section: Section, prefix: string, draft: Record<string, string>): boolean {
+  for (const f of section.fields) {
+    const fk = fieldFullKey(prefix, f.key);
+    if (draft[fk] !== (f.defaultValue ?? '')) return true;
+  }
+  for (const sub of section.sections) {
+    if (sectionHasOverrides(sub, fieldFullKey(prefix, sub.key), draft)) return true;
+  }
+  for (const arr of section.arrays) {
+    if (arrayHasOverrides(arr, fieldFullKey(prefix, arr.key), draft)) return true;
+  }
+  return false;
+}
+
+/** Returns true if any item in the array was added, deleted, or modified relative to defaults. */
+export function arrayHasOverrides(arr: ArrayField, arrayPrefix: string, draft: Record<string, string>): boolean {
+  for (const item of arr.items) {
+    if (item.isDeletable) {
+      // Deletable items are ConfigWay additions — their presence in draft is an override
+      const key = itemFullKey(arrayPrefix, item.index);
+      if (arr.isSimple) {
+        if (key in draft) return true;
+      } else {
+        const keys = collectItemKeys(arr, arrayPrefix, item.index);
+        if (keys.some(k => k in draft)) return true;
+      }
+    } else {
+      // Non-deletable: check if value was overridden relative to base config default
+      if (arr.isSimple) {
+        const k = itemFullKey(arrayPrefix, item.index);
+        if (draft[k] !== (item.defaultValue ?? '')) return true;
+      } else {
+        for (const f of item.fields) {
+          const fk = itemFieldFullKey(arrayPrefix, item.index, f.key);
+          if (draft[fk] !== (f.defaultValue ?? '')) return true;
+        }
+        for (const sub of item.sections) {
+          if (sectionHasOverrides(sub, `${arrayPrefix}:${item.index}:${sub.key}`, draft)) return true;
+        }
+      }
+    }
+  }
+  // Locally added items not yet saved
+  const knownIndices = new Set(arr.items.map(i => i.index));
+  return Object.keys(draft).some(k => {
+    if (!k.startsWith(arrayPrefix + ':')) return false;
+    const rest = k.slice(arrayPrefix.length + 1);
+    const idx = parseInt(rest.split(':')[0], 10);
+    return !isNaN(idx) && !knownIndices.has(idx);
+  });
+}
+
+// ── Reset patch builders ──────────────────────────────────────────────────────
+
+export interface ResetPatch {
+  keysToDelete: string[];
+  draftPatch: Record<string, string>;
+}
+
+/** Builds a reset patch for a single field. */
+export function buildFieldResetPatch(fullKey: string, defaultValue: string | null): ResetPatch {
+  return {
+    keysToDelete: [fullKey],
+    draftPatch:   { [fullKey]: defaultValue ?? '' },
+  };
+}
+
+/** Builds a reset patch for an entire section (all fields, subsections, arrays). */
+export function buildSectionResetPatch(
+  section: Section,
+  prefix: string,
+  draft: Record<string, string>
+): ResetPatch {
+  const keysToDelete: string[] = [];
+  const draftPatch: Record<string, string> = {};
+
+  for (const f of section.fields) {
+    const fk = fieldFullKey(prefix, f.key);
+    keysToDelete.push(fk);
+    draftPatch[fk] = f.defaultValue ?? '';
+  }
+
+  for (const sub of section.sections) {
+    const sub_ = buildSectionResetPatch(sub, fieldFullKey(prefix, sub.key), draft);
+    keysToDelete.push(...sub_.keysToDelete);
+    Object.assign(draftPatch, sub_.draftPatch);
+  }
+
+  for (const arr of section.arrays) {
+    const arr_ = buildArrayResetPatch(arr, fieldFullKey(prefix, arr.key), draft);
+    keysToDelete.push(...arr_.keysToDelete);
+    Object.assign(draftPatch, arr_.draftPatch);
+  }
+
+  return { keysToDelete, draftPatch };
+}
+
+/** Builds a reset patch for an entire array (removes added items, resets modified base items). */
+export function buildArrayResetPatch(
+  arr: ArrayField,
+  arrayPrefix: string,
+  draft: Record<string, string>
+): ResetPatch {
+  const keysToDelete: string[] = [];
+  const draftPatch: Record<string, string> = {};
+
+  for (const item of arr.items) {
+    if (item.isDeletable) {
+      const keys = arr.isSimple
+        ? [itemFullKey(arrayPrefix, item.index)]
+        : collectItemKeys(arr, arrayPrefix, item.index);
+      keysToDelete.push(...keys);
+      keys.forEach(k => { draftPatch[k] = '__DELETE__'; });
+    } else {
+      if (arr.isSimple) {
+        const k = itemFullKey(arrayPrefix, item.index);
+        keysToDelete.push(k);
+        draftPatch[k] = item.defaultValue ?? '';
+      } else {
+        for (const f of item.fields) {
+          const fk = itemFieldFullKey(arrayPrefix, item.index, f.key);
+          keysToDelete.push(fk);
+          draftPatch[fk] = f.defaultValue ?? '';
+        }
+        for (const sub of item.sections) {
+          const sub_ = buildSectionResetPatch(sub, `${arrayPrefix}:${item.index}:${sub.key}`, draft);
+          keysToDelete.push(...sub_.keysToDelete);
+          Object.assign(draftPatch, sub_.draftPatch);
+        }
+      }
+    }
+  }
+
+  // Remove locally added items (in draft but not in arr.items)
+  const knownIndices = new Set(arr.items.map(i => i.index));
+  Object.keys(draft).forEach(k => {
+    if (!k.startsWith(arrayPrefix + ':')) return;
+    const rest = k.slice(arrayPrefix.length + 1);
+    const idx = parseInt(rest.split(':')[0], 10);
+    if (!isNaN(idx) && !knownIndices.has(idx)) {
+      draftPatch[k] = '__DELETE__';
+    }
+  });
+
+  return { keysToDelete, draftPatch };
 }
 
 // ── Array operations ──────────────────────────────────────────────────────────
@@ -122,7 +275,6 @@ export function collectItemKeys(
     }
   }
 
-  // Use the template shape to know which sub-keys exist
   walkTemplate(arr.template, itemPrefix);
   return keys;
 }
