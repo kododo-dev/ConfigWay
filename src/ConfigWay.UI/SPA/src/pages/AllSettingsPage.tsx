@@ -8,7 +8,6 @@ import PageHeader from '../components/layout/PageHeader';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 import { saveSettings } from '../api/api';
-import type { Section } from '../api/api.model';
 import { collectFields, buildDraftFromSections, getChangedSettings } from '../utils/settings';
 
 const AllSettingsPage = () => {
@@ -16,45 +15,74 @@ const AllSettingsPage = () => {
   const { t } = useI18n();
   const theme = useTheme();
 
-  const [draft,      setDraft]      = useState<Record<string, string>>({});
-  const [saving,     setSaving]     = useState(false);
-  const [saveErrors, setSaveErrors] = useState<string[]>([]);
-  const [search,     setSearch]     = useState('');
+  const [draft,         setDraft]         = useState<Record<string, string>>({});
+  const [keysToDelete,  setKeysToDelete]  = useState<string[]>([]);
+  const [saving,        setSaving]        = useState(false);
+  const [saveErrors,    setSaveErrors]    = useState<string[]>([]);
+  const [search,        setSearch]        = useState('');
 
   useEffect(() => {
     setDraft(buildDraftFromSections(sections));
+    setKeysToDelete([]);
     setSaveErrors([]);
   }, [sections]);
 
   const handleChange = useCallback((key: string, value: string) => {
-    setDraft(prev => ({ ...prev, [key]: value }));
+    if (value === '__DELETE__') {
+      setDraft(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } else {
+      setDraft(prev => ({ ...prev, [key]: value }));
+    }
     setSaveErrors([]);
   }, []);
 
-  const hasChanges = sections.some(section =>
-    Object.entries(collectFields(section)).some(([k, v]) => draft[k] !== (v ?? ''))
-  );
+  const handleAdd = useCallback((patch: Record<string, string>) => {
+    setDraft(prev => ({ ...prev, ...patch }));
+    setSaveErrors([]);
+  }, []);
+
+  const handleRemove = useCallback((serverKeys: string[]) => {
+    if (serverKeys.length > 0)
+      setKeysToDelete(prev => [...prev, ...serverKeys]);
+    setSaveErrors([]);
+  }, []);
+
+  const hasChanges =
+    keysToDelete.length > 0 ||
+    sections.some(section => {
+      const original = collectFields(section, section.key);
+      return (
+        Object.entries(original).some(([k, v]) => draft[k] !== (v ?? '')) ||
+        Object.keys(draft).some(k => !(k in original))
+      );
+    });
 
   const handleDiscard = useCallback(() => {
     setDraft(buildDraftFromSections(sections));
+    setKeysToDelete([]);
     setSaveErrors([]);
   }, [sections]);
 
   const handleSave = useCallback(async () => {
     setSaveErrors([]);
     const changed = sections.flatMap(section =>
-        getChangedSettings(collectFields(section), draft)
+      getChangedSettings(collectFields(section, section.key), draft)
     );
 
-    if (changed.length === 0) return;
+    if (changed.length === 0 && keysToDelete.length === 0) return;
 
     setSaving(true);
-    
+
     try {
-      const errors = await saveSettings(changed);
+      const errors = await saveSettings(changed, keysToDelete);
       if (errors.length > 0) {
         setSaveErrors(errors);
       } else {
+        setKeysToDelete([]);
         await reload();
       }
     } catch (e) {
@@ -62,19 +90,20 @@ const AllSettingsPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [sections, draft, reload]);
+  }, [sections, draft, keysToDelete, reload, t]);
 
   const hasNoResults = !loading && !!search && sections.every(s => {
     const q = search.toLowerCase();
-    const anyMatch = (sec: Section): boolean =>
+    const anyMatch = (sec: typeof s, prefix: string): boolean =>
       sec.name.toLowerCase().includes(q) ||
       sec.fields.some(f =>
         f.name.toLowerCase().includes(q) ||
         f.key.toLowerCase().includes(q)  ||
-        (draft[f.key] ?? '').toLowerCase().includes(q)
+        (draft[`${prefix}:${f.key}`] ?? '').toLowerCase().includes(q)
       ) ||
-      sec.sections.some(anyMatch);
-    return !anyMatch(s);
+      sec.sections.some(sub => anyMatch(sub, `${prefix}:${sub.key}`)) ||
+      sec.arrays.some(arr => arr.name.toLowerCase().includes(q));
+    return !anyMatch(s, s.key);
   });
 
   return (
@@ -120,8 +149,11 @@ const AllSettingsPage = () => {
           <SectionCard
             key={section.key}
             section={section}
+            prefix={section.key}
             draft={draft}
             onChange={handleChange}
+            onAdd={handleAdd}
+            onRemove={handleRemove}
             searchQuery={search}
           />
         ))}

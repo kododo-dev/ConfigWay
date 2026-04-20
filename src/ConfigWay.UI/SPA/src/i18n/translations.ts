@@ -19,6 +19,8 @@ export const translations = {
     searchPlaceholder: 'Search sections and fields…',
     noResults: 'No results for',
     unexpectedError: 'Unexpected error',
+    addItem: 'Add item',
+    removeItem: 'Remove',
   },
   pl: {
     appTitle: 'Konfiguracja',
@@ -38,6 +40,8 @@ export const translations = {
     searchPlaceholder: 'Szukaj sekcji i pól…',
     noResults: 'Brak wyników dla',
     unexpectedError: 'Niespodziewany błąd',
+    addItem: 'Dodaj element',
+    removeItem: 'Usuń',
   },
 } as const;
 

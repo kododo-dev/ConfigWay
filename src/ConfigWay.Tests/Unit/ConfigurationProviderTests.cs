@@ -10,8 +10,6 @@ namespace Kododo.ConfigWay.Tests.Unit;
 
 public class ConfigurationProviderTests
 {
-    // ── Key filtering ─────────────────────────────────────────────────────────
-
     [Fact]
     public void Load_IncludesOnlyKeysRegisteredForKnownOptions()
     {
@@ -60,8 +58,6 @@ public class ConfigurationProviderTests
         value.Should().BeNull();
     }
 
-    // ── Nested key collection ─────────────────────────────────────────────────
-
     [Fact]
     public void Load_ForNestedType_CollectsDeepKeys()
     {
@@ -89,11 +85,8 @@ public class ConfigurationProviderTests
         var provider = CreateProvider(store, new CoreOptions("Opt", typeof(ReadOnlyPropOptions)));
         provider.Load();
 
-        // The key was filtered because the property is read-only
         provider.TryGet("Opt:ReadOnly", out _).Should().BeFalse();
     }
-
-    // ── Reload ────────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task ReloadAsync_UpdatesData()
@@ -129,8 +122,6 @@ public class ConfigurationProviderTests
         changed.Should().BeTrue();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private static ConfigurationProvider CreateProvider(IStore store, params CoreOptions[] options)
     {
         var config = new Configuration(store, options);
@@ -138,9 +129,8 @@ public class ConfigurationProviderTests
     }
 }
 
-// Used to test that read-only properties are ignored
 file class ReadOnlyPropOptions
 {
-    public string ReadOnly { get; } = string.Empty; // no setter
+    public string ReadOnly { get; } = string.Empty;
     public string Writable { get; set; } = string.Empty;
 }

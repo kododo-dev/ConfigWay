@@ -22,11 +22,8 @@ public class UpdateConfigurationHandlerTests
 
     public UpdateConfigurationHandlerTests()
     {
-        // By default, no validators registered.
         BuildServiceProvider();
     }
-
-    // ── HandleAsync — happy path ───────────────────────────────────────────────
 
     [Fact]
     public async Task HandleAsync_ValidSettings_ReturnsEmptyErrors()
@@ -73,8 +70,6 @@ public class UpdateConfigurationHandlerTests
 
         errors.Should().BeEmpty();
     }
-
-    // ── Validation failures ───────────────────────────────────────────────────
 
     [Fact]
     public async Task HandleAsync_WhenValidatorFails_ReturnsErrors()
@@ -136,23 +131,18 @@ public class UpdateConfigurationHandlerTests
         errors.Should().BeEmpty();
     }
 
-    // ── Key relevance filtering ───────────────────────────────────────────────
-
     [Fact]
     public async Task HandleAsync_SettingsForDifferentSection_DoesNotRunValidator()
     {
         RegisterValidator(new AlwaysFailValidator());
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
 
-        // Settings for a completely different section — validator should not be triggered
         var settings = new[] { new Setting("Other:SomeKey", "value") };
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
         errors.Should().BeEmpty();
     }
-
-    // ── Typed values — bool, number, enum ────────────────────────────────────
 
     [Theory]
     [InlineData("True")]
@@ -229,8 +219,6 @@ public class UpdateConfigurationHandlerTests
         errors.Should().ContainSingle(e => e.Contains("T:Level"));
     }
 
-    // ── Nested properties ─────────────────────────────────────────────────────
-
     [Fact]
     public async Task HandleAsync_NestedProperty_ValidatesCorrectly()
     {
@@ -253,7 +241,97 @@ public class UpdateConfigurationHandlerTests
         errors.Should().ContainSingle(e => e.Contains("Simple:DoesNotExist"));
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    [Fact]
+    public async Task HandleAsync_SimpleArrayItemKey_AcceptedWithoutError()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+        var settings = new[] { new Setting("A:Tags:0", "production") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_SimpleArrayItemKey_PersistedToStore()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+        var settings = new[] { new Setting("A:Tags:0", "production") };
+
+        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        await _store.Received(1).SetAsync(
+            Arg.Is<IReadOnlyCollection<Setting>>(s => s.Any(x => x.Key == "A:Tags:0")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_ComplexArrayItemFieldKey_AcceptedWithoutError()
+    {
+        var handler = CreateHandler(new CoreOptions("C", typeof(ComplexArrayOptions)));
+        var settings = new[] { new Setting("C:Items:0:Name", "First item") };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_MultipleArrayItems_AllAccepted()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+        var settings = new[]
+        {
+            new Setting("A:Tags:0", "alpha"),
+            new Setting("A:Tags:1", "beta"),
+            new Setting("A:Tags:2", "gamma"),
+        };
+
+        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithKeysToDelete_CallsDeleteOnStore()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+        var request = new UpdateConfiguration([])
+        {
+            KeysToDelete = ["A:Tags:0", "A:Tags:1"],
+        };
+
+        await handler.HandleAsync(request, default);
+
+        await _store.Received(1).DeleteAsync(
+            Arg.Is<IReadOnlyCollection<string>>(k =>
+                k.Contains("A:Tags:0") && k.Contains("A:Tags:1")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithKeysToDelete_TriggersReload()
+    {
+        var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
+        var request = new UpdateConfiguration([]) { KeysToDelete = ["A:Tags:0"] };
+
+        await handler.HandleAsync(request, default);
+
+        await _editor.Received(1).ReloadAllAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmptyKeysToDelete_DoesNotCallDelete()
+    {
+        var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
+        var settings = new[] { new Setting("Simple:Name", "Alice") };
+
+        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+
+        await _store.DidNotReceive().DeleteAsync(
+            Arg.Any<IReadOnlyCollection<string>>(),
+            Arg.Any<CancellationToken>());
+    }
 
     private UpdateConfigurationHandler CreateHandler(params CoreOptions[] options)
     {

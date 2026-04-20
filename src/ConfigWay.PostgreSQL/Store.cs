@@ -55,7 +55,6 @@ internal sealed class Store(string connectionString) : IStore
                                        """;
             var sql = string.Format(sqlTemplate, Schema, SettingsTable);
 
-            // Prepare the command once and re-bind parameters per row.
             await using var cmd = new NpgsqlCommand(sql, conn, transaction);
             var keyParam = cmd.Parameters.Add(new NpgsqlParameter("key", NpgsqlTypes.NpgsqlDbType.Text));
             var valueParam = cmd.Parameters.Add(new NpgsqlParameter("value", NpgsqlTypes.NpgsqlDbType.Text));
@@ -75,6 +74,19 @@ internal sealed class Store(string connectionString) : IStore
             await transaction.RollbackAsync(stoppingToken);
             throw;
         }
+    }
+
+    public async Task DeleteAsync(IReadOnlyCollection<string> keys, CancellationToken stoppingToken = default)
+    {
+        if (keys.Count == 0)
+            return;
+
+        await using var conn = await OpenAsync(stoppingToken);
+
+        var sql = $"DELETE FROM {Schema}.{SettingsTable} WHERE key = ANY(@keys)";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("keys", keys.ToArray());
+        await cmd.ExecuteNonQueryAsync(stoppingToken);
     }
 
     private static async Task EnsureSchemaExistsAsync(NpgsqlConnection conn, CancellationToken ct)

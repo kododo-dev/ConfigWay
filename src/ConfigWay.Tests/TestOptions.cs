@@ -3,14 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace Kododo.ConfigWay.Tests;
 
-
-// ── Suffix-stripping edge-case types ──────────────────────────────────────────
-
 internal class EmailOptions        { public string Server { get; set; } = string.Empty; }
-internal class Options             { public string Value  { get; set; } = string.Empty; }  // suffix == full name
-internal class AppSettings        { public string Value  { get; set; } = string.Empty; }  // no "Options" suffix
-
-// ── Validator for UpdateConfigurationHandler tests ────────────────────────────
+internal class Options             { public string Value  { get; set; } = string.Empty; }
+internal class AppSettings        { public string Value  { get; set; } = string.Empty; }
 
 internal class AlwaysFailValidator : IValidateOptions<SimpleOptions>
 {
@@ -47,8 +42,6 @@ internal class ChildOptions
     public string ChildProp { get; set; } = string.Empty;
 }
 
-// ── Options with [Display] attributes (for test scenarios) ─────────────
-
 [Display(Name = "Custom Section Name", Description = "Section description")]
 internal class AnnotatedOptions
 {
@@ -64,8 +57,6 @@ internal class AnnotatedChild
     [Display(Name = "Child Field", Description = "Child field description")]
     public string ChildField { get; set; } = string.Empty;
 }
-
-// ── Typed options (bool, int, enum) ──────────────────────────────────────────
 
 internal enum Severity
 {
@@ -85,3 +76,27 @@ internal class TypedOptions
     public bool?    Optional { get; set; }
 }
 
+internal class SimpleArrayOptions
+{
+    public string[] Tags  { get; set; } = [];
+    public int[]    Ports { get; set; } = [];
+}
+
+internal enum ItemCategory
+{
+    [Display(Name = "Primary")]
+    Primary,
+    Secondary,
+}
+
+internal class ItemOptions
+{
+    public string       Name     { get; set; } = string.Empty;
+    public int          Priority { get; set; }
+    public ItemCategory Category { get; set; }
+}
+
+internal class ComplexArrayOptions
+{
+    public ItemOptions[] Items { get; set; } = [];
+}

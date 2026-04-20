@@ -3,8 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace Kododo.ConfigWay.Demo.Web;
 
-// ── Branding / public contact ────────────────────────────────────────────────
-
 [Display(
     Name = "Branding",
     Description = "Public-facing product metadata: used on invoices, transactional emails and the marketing site.")]
@@ -22,8 +20,6 @@ public class BrandingOptions
     [Display(Name = "Marketing Site Url", Description = "Canonical URL of the marketing site (https://...).")]
     public string MarketingSiteUrl { get; set; } = string.Empty;
 }
-
-// ── SMTP ─────────────────────────────────────────────────────────────────────
 
 public class SmtpCredentials
 {
@@ -81,8 +77,6 @@ public class SmtpOptionsValidator : IValidateOptions<SmtpOptions>
     }
 }
 
-// ── Identity / OpenID Connect ────────────────────────────────────────────────
-
 [Display(
     Name = "Identity",
     Description = "OpenID Connect / OAuth2 settings for authenticating end users against the corporate IdP.")]
@@ -127,8 +121,6 @@ public class IdentityOptionsValidator : IValidateOptions<IdentityOptions>
             : ValidateOptionsResult.Fail(failures);
     }
 }
-
-// ── Object storage (S3-compatible) ───────────────────────────────────────────
 
 public enum StorageProvider
 {
@@ -175,7 +167,48 @@ public class StorageOptions
     public StorageCredentials Credentials { get; set; } = new();
 }
 
-// ── Feature flags ────────────────────────────────────────────────────────────
+public enum WebhookEvent
+{
+    [Display(Name = "Order Created")]
+    OrderCreated,
+
+    [Display(Name = "Order Fulfilled")]
+    OrderFulfilled,
+
+    [Display(Name = "Refund Issued")]
+    RefundIssued,
+
+    [Display(Name = "Subscription Renewed")]
+    SubscriptionRenewed,
+}
+
+[Display(Description = "A single outbound webhook receiver registered to receive event payloads.")]
+public class WebhookEndpoint
+{
+    [Display(Name = "URL", Description = "HTTPS endpoint that receives the POST payload.")]
+    public string Url { get; set; } = string.Empty;
+
+    [Display(Name = "HMAC Secret", Description = "Shared secret used to sign the X-Webhook-Signature header. Leave blank to disable signature verification.")]
+    public string Secret { get; set; } = string.Empty;
+
+    [Display(Name = "Event", Description = "Business event this endpoint subscribes to.")]
+    public WebhookEvent Event { get; set; } = WebhookEvent.OrderCreated;
+}
+
+[Display(
+    Name = "Webhooks",
+    Description = "Outbound webhook configuration. Add one entry per event/receiver pair.")]
+public class WebhooksOptions
+{
+    [Display(Name = "Endpoints", Description = "List of registered webhook receivers. Each entry subscribes to one event type.")]
+    public WebhookEndpoint[] Endpoints { get; set; } = [];
+
+    [Display(Name = "Allowed Origins", Description = "CORS origins that are permitted to call the public API (e.g. https://app.example.com).")]
+    public string[] AllowedOrigins { get; set; } = [];
+
+    [Display(Name = "Max Retries", Description = "Number of delivery retries before a failed webhook is abandoned.")]
+    public int MaxRetries { get; set; } = 3;
+}
 
 [Display(
     Name = "FeatureFlags",

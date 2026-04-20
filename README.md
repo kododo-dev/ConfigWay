@@ -55,8 +55,42 @@ ConfigWay maps C# property types to dedicated UI controls automatically:
 | `bool` | Toggle switch |
 | `int`, `long`, `double`, `decimal`, … | Numeric input |
 | `enum` | Dropdown select |
+| `T[]`, `List<T>`, `IList<T>`, … | Collapsible array editor |
 
 Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
+
+## Array types
+
+Collection properties (`T[]`, `List<T>`, `IList<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`) are rendered as a collapsible array editor with add and remove buttons.
+
+**Simple arrays** — scalar element types (`string[]`, `int[]`, `Severity[]`, …) show one input field per item:
+
+```csharp
+public class WebhooksOptions
+{
+    [Display(Name = "Allowed Origins")]
+    public string[] AllowedOrigins { get; set; } = [];
+}
+```
+
+**Complex arrays** — class element types show a full sub-form per item, supporting nested objects and all scalar field types:
+
+```csharp
+public class WebhookEndpoint
+{
+    public string Url    { get; set; } = string.Empty;
+    public string Secret { get; set; } = string.Empty;
+    public WebhookEvent Event { get; set; }
+}
+
+public class WebhooksOptions
+{
+    [Display(Name = "Endpoints")]
+    public WebhookEndpoint[] Endpoints { get; set; } = [];
+}
+```
+
+Items that come from lower configuration layers (appsettings.json, environment variables) are marked as non-deletable — they can be edited but not removed, because deleting them from the ConfigWay store would not suppress the underlying value.
 
 ## Customizing UI labels and descriptions
 

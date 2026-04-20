@@ -13,6 +13,7 @@ import Highlight from '../common/Highlight';
 
 interface FieldEditorProps {
   field: Field;
+  fullKey: string;
   draft: string;
   onChange: (key: string, value: string) => void;
   depth?: number;
@@ -21,7 +22,7 @@ interface FieldEditorProps {
 
 const MONO = { fontFamily: "'IBM Plex Mono', monospace" };
 
-const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: FieldEditorProps) => {
+const FieldEditor = ({ field, fullKey, draft, onChange, depth = 0, searchQuery = '' }: FieldEditorProps) => {
   const { t } = useI18n();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -38,7 +39,7 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
           <Box sx={{ display: 'flex', alignItems: 'center', height: 36 }}>
             <Switch
               checked={draft === 'True'}
-              onChange={e => onChange(field.key, e.target.checked ? 'True' : 'False')}
+              onChange={e => onChange(fullKey, e.target.checked ? 'True' : 'False')}
               size="small"
             />
             <Typography sx={{ ...MONO, fontSize: '0.78rem', color: theme.palette.text.secondary, ml: 0.5 }}>
@@ -51,7 +52,7 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
         return (
           <InputBase
             value={draft}
-            onChange={e => onChange(field.key, e.target.value)}
+            onChange={e => onChange(fullKey, e.target.value)}
             placeholder={field.value ?? t.notSet}
             inputProps={{ inputMode: 'numeric', pattern: '[0-9]*[.,]?[0-9]*' }}
             fullWidth
@@ -82,7 +83,7 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
         return (
           <Select
             value={draft}
-            onChange={e => onChange(field.key, e.target.value)}
+            onChange={e => onChange(fullKey, e.target.value)}
             displayEmpty
             size="small"
             fullWidth
@@ -108,7 +109,7 @@ const FieldEditor = ({ field, draft, onChange, depth = 0, searchQuery = '' }: Fi
         return (
           <InputBase
             value={draft}
-            onChange={e => onChange(field.key, e.target.value)}
+            onChange={e => onChange(fullKey, e.target.value)}
             placeholder={field.value ?? t.notSet}
             fullWidth
             multiline

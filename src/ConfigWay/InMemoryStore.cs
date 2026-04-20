@@ -21,9 +21,15 @@ internal sealed class InMemoryStore : IStore
     public Task SetAsync(IReadOnlyCollection<Setting> settings, CancellationToken stoppingToken = default)
     {
         foreach (var setting in settings)
-        {
             _settings[setting.Key] = setting;
-        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(IReadOnlyCollection<string> keys, CancellationToken stoppingToken = default)
+    {
+        foreach (var key in keys)
+            _settings.TryRemove(key, out _);
 
         return Task.CompletedTask;
     }

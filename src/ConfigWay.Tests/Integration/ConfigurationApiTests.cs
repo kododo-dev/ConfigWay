@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Kododo.ConfigWay.Core.Model;
@@ -10,16 +11,13 @@ using Xunit;
 
 namespace Kododo.ConfigWay.Tests.Integration;
 
-/// <summary>
-/// Full HTTP stack tests against an in-memory ASP.NET Core app.
-/// Tests call the same endpoints as the SPA:
-///   POST /config/api/GetConfiguration
-///   POST /config/api/UpdateConfiguration
-/// </summary>
 public class ConfigurationApiTests : IAsyncLifetime
 {
     private WebApplication _app    = null!;
     private HttpClient     _client = null!;
+
+    private static readonly JsonSerializerOptions JsonOpts =
+        new(JsonSerializerDefaults.Web);
 
     public async Task InitializeAsync()
     {
@@ -31,9 +29,11 @@ public class ConfigurationApiTests : IAsyncLifetime
             x.AddOptions<SimpleOptions>("Simple");
             x.AddOptions<NestedOptions>("Nested");
             x.AddOptions<TypedOptions>("Typed");
+            x.AddOptions<SimpleArrayOptions>("Arrays");
+            x.AddOptions<ComplexArrayOptions>("Complex");
             x.AddUiEditor();
         });
-        
+
         _app = builder.Build();
         _app.UseConfigWay();
 
@@ -48,8 +48,6 @@ public class ConfigurationApiTests : IAsyncLifetime
         await _app.DisposeAsync();
     }
 
-    // ── GET configuration ─────────────────────────────────────────────────────
-
     [Fact]
     public async Task GetConfiguration_Returns200()
     {
@@ -62,8 +60,9 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
 
-        sections.Should().HaveCount(3);
-        sections.Select(s => s.Key).Should().BeEquivalentTo("Simple", "Nested", "Typed");
+        sections.Should().HaveCount(5);
+        sections.Select(s => s.Key)
+            .Should().BeEquivalentTo("Simple", "Nested", "Typed", "Arrays", "Complex");
     }
 
     [Fact]
@@ -72,8 +71,9 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
 
         var simple = sections.Single(s => s.Key == "Simple");
-        simple.Fields.Select(f => f.Key).Should().BeEquivalentTo("Simple:Name", "Simple:Value");
+        simple.Fields.Select(f => f.Key).Should().BeEquivalentTo("Name", "Value");
         simple.Sections.Should().BeEmpty();
+        simple.Arrays.Should().BeEmpty();
     }
 
     [Fact]
@@ -82,8 +82,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
 
         var nested = sections.Single(s => s.Key == "Nested");
-        nested.Fields.Should().ContainSingle(f => f.Key == "Nested:TopLevel");
-        nested.Sections.Should().ContainSingle(s => s.Key == "Nested:Child");
+        nested.Fields.Should().ContainSingle(f => f.Key == "TopLevel");
+        nested.Sections.Should().ContainSingle(s => s.Key == "Child");
     }
 
     [Fact]
@@ -94,8 +94,6 @@ public class ConfigurationApiTests : IAsyncLifetime
         sections.SelectMany(s => s.Fields)
             .Should().AllSatisfy(f => f.Value.Should().BeNull());
     }
-
-    // ── UPDATE configuration ──────────────────────────────────────────────────
 
     [Fact]
     public async Task UpdateConfiguration_ValidSettings_Returns200WithEmptyErrors()
@@ -116,7 +114,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field = sections
             .Single(s => s.Key == "Simple")
-            .Fields.Single(f => f.Key == "Simple:Name");
+            .Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().Be("Alice");
     }
@@ -128,7 +126,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         await PostUpdateConfiguration([new Setting("Simple:Name", "Second")]);
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().Be("Second");
     }
@@ -141,14 +139,13 @@ public class ConfigurationApiTests : IAsyncLifetime
             new Setting("Simple:Value", "42")
         ]);
 
-        // Update only Name
         await PostUpdateConfiguration([new Setting("Simple:Name", "Bob")]);
 
         var sections = await FetchSections();
         var fields = sections.Single(s => s.Key == "Simple").Fields;
 
-        fields.Single(f => f.Key == "Simple:Name").Value.Should().Be("Bob");
-        fields.Single(f => f.Key == "Simple:Value").Value.Should().Be("42");
+        fields.Single(f => f.Key == "Name").Value.Should().Be("Bob");
+        fields.Single(f => f.Key == "Value").Value.Should().Be("42");
     }
 
     [Fact]
@@ -158,7 +155,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var subSection = sections.Single(s => s.Key == "Nested").Sections.Single();
-        var field = subSection.Fields.Single(f => f.Key == "Nested:Child:ChildProp");
+        var field = subSection.Fields.Single(f => f.Key == "ChildProp");
 
         field.Value.Should().Be("deep");
     }
@@ -170,18 +167,16 @@ public class ConfigurationApiTests : IAsyncLifetime
         await PostUpdateConfiguration([new Setting("Simple:Name", null)]);
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().BeNull();
     }
-
-    // ── Field types over HTTP ─────────────────────────────────────────────────
 
     [Fact]
     public async Task GetConfiguration_StringField_HasStringType()
     {
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Label");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Label");
         field.Type.Should().Be("String");
     }
 
@@ -189,7 +184,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_BoolField_HasBoolType()
     {
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Enabled");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Enabled");
         field.Type.Should().Be("Bool");
     }
 
@@ -197,7 +192,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_NumberField_HasNumberType()
     {
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Count");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Count");
         field.Type.Should().Be("Number");
     }
 
@@ -205,7 +200,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_EnumField_HasEnumType()
     {
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
         field.Type.Should().Be("Enum");
     }
 
@@ -213,7 +208,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_EnumField_ReturnsOptions()
     {
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
         field.Options.Should().NotBeNull();
         field.Options!.Select(o => o.Value).Should().BeEquivalentTo("Low", "Medium", "High");
     }
@@ -222,7 +217,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_EnumField_DisplayAttributeAppliedToLabels()
     {
         var sections = await FetchSections();
-        var options = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level").Options!;
+        var options = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level").Options!;
         options.Single(o => o.Value == "Low").Label.Should().Be("Low priority");
         options.Single(o => o.Value == "High").Label.Should().Be("High priority");
         options.Single(o => o.Value == "Medium").Label.Should().Be("Medium");
@@ -234,7 +229,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         await PostUpdateConfiguration([new Setting("Typed:Enabled", "True")]);
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Enabled");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Enabled");
         field.Value.Should().Be("True");
     }
 
@@ -244,7 +239,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         await PostUpdateConfiguration([new Setting("Typed:Count", "99")]);
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Count");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Count");
         field.Value.Should().Be("99");
     }
 
@@ -254,46 +249,176 @@ public class ConfigurationApiTests : IAsyncLifetime
         await PostUpdateConfiguration([new Setting("Typed:Level", "High")]);
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Typed:Level");
+        var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
         field.Value.Should().Be("High");
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    [Fact]
+    public async Task GetConfiguration_SimpleArraySection_HasArrayEntry()
+    {
+        var sections = await FetchSections();
+        var section = sections.Single(s => s.Key == "Arrays");
+
+        section.Arrays.Should().Contain(a => a.Key == "Tags");
+        section.Arrays.Should().Contain(a => a.Key == "Ports");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_SimpleStringArray_IsSimpleTrue()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
+
+        arr.IsSimple.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_SimpleStringArray_TemplateTypeIsString()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
+
+        arr.Template.Type.Should().Be("String");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_SimpleIntArray_TemplateTypeIsNumber()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Ports");
+
+        arr.Template.Type.Should().Be("Number");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_SimpleArray_InitiallyHasNoItems()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
+
+        arr.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_ComplexArray_IsSimpleFalse()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items");
+
+        arr.IsSimple.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_ComplexArray_TemplateHasFields()
+    {
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items");
+
+        arr.Template.Fields.Should().NotBeEmpty();
+        arr.Template.Fields.Select(f => f.Key)
+            .Should().BeEquivalentTo("Name", "Priority", "Category");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_AddSimpleArrayItem_CanBeRetrieved()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "production")]);
+
+        var sections = await FetchSections();
+        var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
+
+        arr.Items.Should().ContainSingle(i => i.Index == 0 && i.Value == "production");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_AddMultipleSimpleArrayItems_AllRetrieved()
+    {
+        await PostUpdateConfiguration([
+            new Setting("Arrays:Tags:0", "dev"),
+            new Setting("Arrays:Tags:1", "staging"),
+            new Setting("Arrays:Tags:2", "production"),
+        ]);
+
+        var sections = await FetchSections();
+        var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
+
+        items.Should().HaveCount(3);
+        items.Select(i => i.Value).Should().BeEquivalentTo("dev", "staging", "production");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_AddComplexArrayItem_FieldsRetrieved()
+    {
+        await PostUpdateConfiguration([
+            new Setting("Complex:Items:0:Name",     "First"),
+            new Setting("Complex:Items:0:Priority", "10"),
+        ]);
+
+        var sections = await FetchSections();
+        var item = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items")
+            .Items.Single();
+
+        item.Index.Should().Be(0);
+        item.Fields.Single(f => f.Key == "Name").Value.Should().Be("First");
+        item.Fields.Single(f => f.Key == "Priority").Value.Should().Be("10");
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_DeleteArrayItem_ItemNoLongerReturned()
+    {
+        await PostUpdateConfiguration([
+            new Setting("Arrays:Tags:0", "keep"),
+            new Setting("Arrays:Tags:1", "remove"),
+        ]);
+
+        await PostUpdateConfiguration([], keysToDelete: ["Arrays:Tags:1"]);
+
+        var sections = await FetchSections();
+        var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
+
+        items.Should().ContainSingle(i => i.Index == 0);
+        items.Should().NotContain(i => i.Index == 1);
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_DeleteReturns200WithEmptyErrors()
+    {
+        await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "temp")]);
+
+        var response = await PostUpdateConfiguration([], keysToDelete: ["Arrays:Tags:0"]);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var errors = await response.Content.ReadFromJsonAsync<string[]>();
+        errors.Should().BeEmpty();
+    }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
         _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });
 
-    private async Task<HttpResponseMessage> PostUpdateConfiguration(Setting[] settings)
+    private Task<HttpResponseMessage> PostUpdateConfiguration(
+        Setting[] settings,
+        string[]? keysToDelete = null)
     {
-        var json = JsonSerializer.Serialize(new { Settings = settings }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        var response = await _client.PostAsync("/config/api/UpdateConfiguration", new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await response.Content.ReadAsStringAsync();
-            throw new Xunit.Sdk.XunitException(
-                $"UpdateConfiguration failed with {(int)response.StatusCode} {response.StatusCode}. Body: {body}.");
-        }
-        return response;
+        var payload = new { Settings = settings, KeysToDelete = keysToDelete ?? [] };
+        var json    = JsonSerializer.Serialize(payload, JsonOpts);
+        return _client.PostAsync(
+            "/config/api/UpdateConfiguration",
+            new StringContent(json, Encoding.UTF8, "application/json"));
     }
 
     private async Task<SectionDto[]> FetchSections()
     {
         var response = await PostGetConfiguration();
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<SectionDto[]>())!;
+        return (await response.Content.ReadFromJsonAsync<SectionDto[]>(JsonOpts))!;
     }
-
-    // ── Minimal DTOs for JSON deserialization ─────────────────────────────────
-    // Mirror the shape of Kododo.ConfigWay.UI.DTO.Section / Field.
-    // Only properties the tests actually inspect are included; JsonSerializerDefaults.Web
-    // handles camelCase and is case-insensitive on deserialization.
 
     private sealed record SectionDto(
         string Key,
         string? Name,
         SectionDto[] Sections,
         FieldDto[] Fields,
+        ArrayFieldDto[] Arrays,
         string? Description);
 
     private sealed record FieldDto(
@@ -303,6 +428,20 @@ public class ConfigurationApiTests : IAsyncLifetime
         string? Value,
         string? Description,
         EnumOptionDto[]? Options);
+
+    private sealed record ArrayFieldDto(
+        string Key,
+        string? Name,
+        bool IsSimple,
+        ArrayItemDto[] Items,
+        ArrayItemDto Template);
+
+    private sealed record ArrayItemDto(
+        int Index,
+        bool IsDeletable,
+        string? Value,
+        string? Type,
+        FieldDto[] Fields);
 
     private sealed record EnumOptionDto(string Value, string Label);
 }

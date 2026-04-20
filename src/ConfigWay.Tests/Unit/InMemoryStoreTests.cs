@@ -11,8 +11,6 @@ public class InMemoryStoreTests
     public InMemoryStoreTests() =>
         _store.InitializeAsync().GetAwaiter().GetResult();
 
-    // ── GetAll ────────────────────────────────────────────────────────────────
-
     [Fact]
     public async Task GetAll_WhenEmpty_ReturnsEmptyList()
     {
@@ -31,8 +29,6 @@ public class InMemoryStoreTests
         result.Should().Contain(s => s.Key == "Key1" && s.Value == "Value1");
         result.Should().Contain(s => s.Key == "Key2" && s.Value == "Value2");
     }
-
-    // ── Set ───────────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task Set_ExistingKey_OverwritesValue()

@@ -5,4 +5,5 @@ internal record Section(
     string Name,
     Section[] Sections,
     Field[] Fields,
+    ArrayField[] Arrays,
     string? Description);

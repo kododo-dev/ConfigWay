@@ -55,6 +55,7 @@ nunit-*.xml
 
 # Rider / JetBrains IDE
 .idea/
+*.dotsettings.user
 
 # ========================
 # React / Node (SPA/)

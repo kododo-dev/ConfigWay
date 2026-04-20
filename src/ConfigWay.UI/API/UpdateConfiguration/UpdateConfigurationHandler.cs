@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Reflection;
 using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.Core.Model;
@@ -23,6 +23,10 @@ internal class UpdateConfigurationHandler(
         if (errors.Length > 0)
             return errors;
 
+        var keysToDelete = request.KeysToDelete ?? [];
+        if (keysToDelete.Length > 0)
+            await configuration.Store.DeleteAsync(keysToDelete, stoppingToken);
+
         await configuration.Store.SetAsync(request.Settings, stoppingToken);
         await configurationEditor.ReloadAllAsync(stoppingToken);
         return [];
@@ -31,7 +35,7 @@ internal class UpdateConfigurationHandler(
     private string[] Validate(Setting[] incoming)
     {
         var errors = new List<string>();
-        
+
         var changes = incoming.ToDictionary(
             s => s.Key,
             s => s.Value,
@@ -44,10 +48,10 @@ internal class UpdateConfigurationHandler(
 
             if (!relevant)
                 continue;
-            
+
             var instance = Activator.CreateInstance(options.Type)!;
             PopulateFromConfiguration(instance, options.Key, options.Type);
-            
+
             foreach (var (key, value) in changes)
             {
                 if (!key.StartsWith(options.Key + ":", StringComparison.OrdinalIgnoreCase))
@@ -64,7 +68,7 @@ internal class UpdateConfigurationHandler(
                     errors.Add($"{key}: {ex.Message}");
                 }
             }
-            
+
             var validatorType = typeof(IValidateOptions<>).MakeGenericType(options.Type);
             foreach (var validator in services.GetServices(validatorType))
             {
@@ -77,8 +81,6 @@ internal class UpdateConfigurationHandler(
                 }
                 catch (TargetInvocationException tie)
                 {
-                    // Surface the original validator error as a regular validation failure
-                    // instead of letting a reflective call crash the request with a 500.
                     var inner = tie.InnerException ?? tie;
                     errors.Add($"{options.Key}: validator '{validator?.GetType().Name}' threw {inner.GetType().Name}: {inner.Message}");
                     continue;
@@ -96,7 +98,7 @@ internal class UpdateConfigurationHandler(
 
         return [.. errors];
     }
-    
+
     private void PopulateFromConfiguration(object instance, string sectionKey, Type type)
     {
         foreach (var prop in GetWritableProperties(type))
@@ -110,8 +112,11 @@ internal class UpdateConfigurationHandler(
                 if (raw is not null)
                 {
                     try { prop.SetValue(instance, ConvertValue(raw, prop.PropertyType)); }
-                    catch { /* leave default if conversion fails */ }
+                    catch { }
                 }
+            }
+            else if (IsArrayOrCollection(underlying))
+            {
             }
             else
             {
@@ -121,7 +126,7 @@ internal class UpdateConfigurationHandler(
             }
         }
     }
-    
+
     private static void SetNestedValue(object instance, Type type, string relativePath, string? value)
     {
         var segments = relativePath.Split(':');
@@ -130,12 +135,18 @@ internal class UpdateConfigurationHandler(
 
         for (var i = 0; i < segments.Length - 1; i++)
         {
+            if (int.TryParse(segments[i], out _))
+                return;
+
             var prop = GetProperty(currentType, segments[i])
                        ?? throw new InvalidOperationException(
                            $"Property '{segments[i]}' not found on '{currentType.Name}'.");
 
             var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-            
+
+            if (i + 1 < segments.Length && int.TryParse(segments[i + 1], out _))
+                return;
+
             var nested = prop.GetValue(current);
             if (nested is null)
             {
@@ -146,6 +157,9 @@ internal class UpdateConfigurationHandler(
             current     = nested;
             currentType = underlying;
         }
+
+        if (int.TryParse(segments[^1], out _))
+            return;
 
         var leafProp = GetProperty(currentType, segments[^1])
                        ?? throw new InvalidOperationException(
@@ -168,6 +182,19 @@ internal class UpdateConfigurationHandler(
         t == typeof(int)     || t == typeof(long)   || t == typeof(short)  ||
         t == typeof(float)   || t == typeof(double) || t == typeof(decimal) ||
         t == typeof(byte)    || t == typeof(uint)   || t == typeof(ulong);
+
+    private static bool IsArrayOrCollection(Type t)
+    {
+        if (t.IsArray) return true;
+        if (!t.IsGenericType) return false;
+        var gtd = t.GetGenericTypeDefinition();
+        return gtd == typeof(List<>)                ||
+               gtd == typeof(IList<>)               ||
+               gtd == typeof(IEnumerable<>)         ||
+               gtd == typeof(IReadOnlyList<>)       ||
+               gtd == typeof(ICollection<>)         ||
+               gtd == typeof(IReadOnlyCollection<>);
+    }
 
     private static object? ConvertValue(string? value, Type targetType)
     {

@@ -6,18 +6,15 @@ namespace Kododo.ConfigWay.Tests.Unit;
 
 public class ConfigurationBuilderTests
 {
-    // ── StripOptionsSuffix (tested via AddOptions key assignment) ─────────────
-
     [Theory]
-    [InlineData(typeof(EmailOptions),  "Email")]        // standard suffix strip
-    [InlineData(typeof(NestedOptions), "Nested")]       // another suffix strip
-    [InlineData(typeof(AppSettings),  "AppSettings")]  // no "Options" suffix → unchanged
-    [InlineData(typeof(Options),       "Options")]      // name == suffix → unchanged (too short)
+    [InlineData(typeof(EmailOptions),  "Email")]
+    [InlineData(typeof(NestedOptions), "Nested")]
+    [InlineData(typeof(AppSettings),  "AppSettings")]
+    [InlineData(typeof(Options),       "Options")]
     public void AddOptions_WithoutExplicitKey_DerivesKeyFromTypeName(Type type, string expectedKey)
     {
         var builder = CreateBuilder();
 
-        // call AddOptions<T> via reflection to avoid hardcoding the type parameter
         var method = typeof(ConfigurationBuilder)
             .GetMethod(nameof(ConfigurationBuilder.AddOptions))!
             .MakeGenericMethod(type);
@@ -67,8 +64,6 @@ public class ConfigurationBuilderTests
 
         config.Store.Should().NotBeNull();
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static ConfigurationBuilder CreateBuilder()
     {

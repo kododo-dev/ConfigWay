@@ -46,10 +46,13 @@ ConfigWay maps C# property types to dedicated UI controls automatically:
 | `bool` | Toggle switch |
 | `int`, `long`, `double`, `decimal`, … | Numeric input |
 | `enum` | Dropdown select |
+| `T[]`, `List<T>`, `IList<T>`, … | Collapsible array editor |
 
 Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
 
 Use `[Display(Name = "...")]` on enum members to customise the labels shown in the dropdown — the underlying member name is still used as the stored value.
+
+Collection properties render as an array editor with add and remove buttons. Simple element types (scalars) show one input per item; class element types show a full sub-form per item.
 
 ## Validation
 

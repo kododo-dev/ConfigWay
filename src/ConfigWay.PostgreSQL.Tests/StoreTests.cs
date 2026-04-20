@@ -16,19 +16,15 @@ public class StoreTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _store = new Store(_fixture.ConnectionString);
-        await _store.InitializeAsync();   // creates schema + table (idempotent)
-        await _fixture.ResetAsync();      // clean state for this test
+        await _store.InitializeAsync();
+        await _fixture.ResetAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    // ── InitializeAsync ───────────────────────────────────────────────────────
-
     [Fact]
     public async Task InitializeAsync_CreatesSchemaAndTable()
     {
-        // Already called in InitializeAsync — verify schema + table exist
-        // by inserting and reading a row (would fail if table doesn't exist)
         await _store.SetAsync([new Setting("probe", "ok")]);
         var result = await _store.GetAllAsync();
         result.Should().ContainSingle(s => s.Key == "probe");
@@ -40,8 +36,6 @@ public class StoreTests : IAsyncLifetime
         var act = async () => await _store.InitializeAsync();
         await act.Should().NotThrowAsync();
     }
-
-    // ── GetAllAsync ───────────────────────────────────────────────────────────
 
     [Fact]
     public async Task GetAll_WhenTableIsEmpty_ReturnsEmptyList()
@@ -74,8 +68,6 @@ public class StoreTests : IAsyncLifetime
 
         result.Single(s => s.Key == "NullKey").Value.Should().BeNull();
     }
-
-    // ── SetAsync — upsert ─────────────────────────────────────────────────────
 
     [Fact]
     public async Task Set_NewKey_InsertsRow()
@@ -140,36 +132,25 @@ public class StoreTests : IAsyncLifetime
         result.Should().HaveCount(10);
     }
 
-    // ── Transactional behaviour ───────────────────────────────────────────────
-
     [Fact]
     public async Task Set_AfterPartialInsert_RollsBackAllChanges()
     {
-        // Seed a valid key first so we have a baseline
         await _store.SetAsync([new Setting("Existing", "before")]);
 
-        // Create settings where the second one has a duplicate that will cause a unique
-        // violation if we try to insert it twice in the SAME call — we simulate a bad
-        // batch by passing the same key twice (the upsert resolves this, so instead
-        // we verify isolation by using a store with an invalid connection string).
         var brokenStore = new Store("Host=127.0.0.1;Port=9;Database=x;Username=x;Password=x");
 
         var act = async () => await brokenStore.SetAsync([new Setting("K", "V")]);
         await act.Should().ThrowAsync<Exception>();
 
-        // Original data must be untouched
         var result = await _store.GetAllAsync();
         result.Should().ContainSingle(s => s.Key == "Existing" && s.Value == "before");
     }
-
-    // ── Persistence (simulated restart) ──────────────────────────────────────
 
     [Fact]
     public async Task Set_DataPersistedAcrossStoreInstances()
     {
         await _store.SetAsync([new Setting("Persistent", "data")]);
 
-        // Simulate app restart: create a fresh Store pointing to the same DB
         var freshStore = new Store(_fixture.ConnectionString);
         await freshStore.InitializeAsync();
 
@@ -178,8 +159,5 @@ public class StoreTests : IAsyncLifetime
     }
 }
 
-/// <summary>
-/// Ensures all tests in this class share the same container instance.
-/// </summary>
 [CollectionDefinition("PostgreSQL")]
 public class PostgreSqlCollectionDefinition : ICollectionFixture<PostgreSqlFixture> { }

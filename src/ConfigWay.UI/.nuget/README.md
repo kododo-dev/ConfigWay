@@ -40,6 +40,7 @@ app.UseConfigWay()
 
 - All registered sections in one view, or individual section pages via sidebar
 - Nested option objects rendered as collapsible subsections with depth-based visual hierarchy
+- Collection properties (`T[]`, `List<T>`, …) rendered as collapsible array editors with add and remove buttons; items that come from lower config layers (appsettings.json, env vars) are non-deletable
 - Save / Discard in the page header — active only when changes are pending
 - Validation errors shown in the sticky header
 - Search across section names, field names and values with inline highlighting

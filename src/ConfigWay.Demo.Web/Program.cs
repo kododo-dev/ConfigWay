@@ -15,6 +15,7 @@ builder.AddConfigWay(x =>
     x.AddOptions<SmtpOptions>("Smtp");
     x.AddOptions<IdentityOptions>("Identity");
     x.AddOptions<StorageOptions>("Storage");
+    x.AddOptions<WebhooksOptions>("Webhooks");
     x.AddOptions<FeatureFlags>("FeatureFlags");
     x.AddUiEditor();
     x.UsePostgreSql(builder.Configuration.GetConnectionString("DemoDB")!);
@@ -35,13 +36,11 @@ app.UseAuthorization();
 
 app.MapGet("/", () => "Hello World!");
 
-// Expose current live values of every section so you can verify that
-// "Save" in the ConfigWay UI is reflected without restarting the app.
-// These live under /preview to avoid colliding with UseConfigWay() mounted at /config.
 app.MapGet("/preview/branding", (IOptionsSnapshot<BrandingOptions> opts) => opts.Value);
 app.MapGet("/preview/smtp", (IOptionsSnapshot<SmtpOptions> opts) => opts.Value);
 app.MapGet("/preview/identity", (IOptionsSnapshot<IdentityOptions> opts) => opts.Value);
 app.MapGet("/preview/storage", (IOptionsSnapshot<StorageOptions> opts) => opts.Value);
+app.MapGet("/preview/webhooks", (IOptionsSnapshot<WebhooksOptions> opts) => opts.Value);
 app.MapGet("/preview/feature-flags", (IOptionsSnapshot<FeatureFlags> opts) => opts.Value);
 
 app.MapGet("/login", async (HttpContext ctx) =>

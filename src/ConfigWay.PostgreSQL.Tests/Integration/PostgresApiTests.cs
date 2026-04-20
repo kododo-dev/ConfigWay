@@ -10,10 +10,6 @@ using Xunit;
 
 namespace Kododo.ConfigWay.PostgreSQL.Tests.Integration;
 
-/// <summary>
-/// End-to-end tests: HTTP → handler → PostgreSQL → IOptions reload.
-/// Each test gets a fresh app instance backed by the shared PostgreSQL container.
-/// </summary>
 [Collection("PostgreSQL")]
 public class PostgresApiTests : IAsyncLifetime
 {
@@ -52,8 +48,6 @@ public class PostgresApiTests : IAsyncLifetime
         await _app.DisposeAsync();
     }
 
-    // ── GET ───────────────────────────────────────────────────────────────────
-
     [Fact]
     public async Task GetConfiguration_Returns200()
     {
@@ -77,8 +71,6 @@ public class PostgresApiTests : IAsyncLifetime
         sections.SelectMany(s => s.Fields).Should().AllSatisfy(f => f.Value.Should().BeNull());
     }
 
-    // ── POST / round-trip ─────────────────────────────────────────────────────
-
     [Fact]
     public async Task UpdateConfiguration_ValidSettings_Returns200WithEmptyErrors()
     {
@@ -95,7 +87,7 @@ public class PostgresApiTests : IAsyncLifetime
         await PostUpdate(new[] { new { key = "Simple:Name", value = "Alice" } });
 
         var sections = await FetchSections();
-        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().Be("Alice");
     }
@@ -105,13 +97,12 @@ public class PostgresApiTests : IAsyncLifetime
     {
         await PostUpdate(new[] { new { key = "Simple:Name", value = "Persistent" } });
 
-        // Simulate restart: new app instance, same DB
         await using var restartedApp = await CreateAppAsync();
         using var restartedClient    = restartedApp.GetTestClient();
 
         var response  = await restartedClient.PostAsJsonAsync("/config/api/GetConfiguration", new { });
         var sections  = (await response.Content.ReadFromJsonAsync<SectionDto[]>())!;
-        var field     = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field     = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().Be("Persistent");
     }
@@ -123,7 +114,7 @@ public class PostgresApiTests : IAsyncLifetime
         await PostUpdate(new[] { new { key = "Simple:Name", value = "Second" } });
 
         var sections = await FetchSections();
-        var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().Be("Second");
     }
@@ -142,8 +133,8 @@ public class PostgresApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var fields   = sections.Single(s => s.Key == "Simple").Fields;
 
-        fields.Single(f => f.Key == "Simple:Name").Value.Should().Be("Bob");
-        fields.Single(f => f.Key == "Simple:Value").Value.Should().Be("42");
+        fields.Single(f => f.Key == "Name").Value.Should().Be("Bob");
+        fields.Single(f => f.Key == "Value").Value.Should().Be("42");
     }
 
     [Fact]
@@ -152,8 +143,8 @@ public class PostgresApiTests : IAsyncLifetime
         await PostUpdate(new[] { new { key = "Nested:Child:ChildProp", value = "deep" } });
 
         var sections   = await FetchSections();
-        var subSection = sections.Single(s => s.Key == "Nested").Sections.Single();
-        var field      = subSection.Fields.Single(f => f.Key == "Nested:Child:ChildProp");
+        var subSection = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Child");
+        var field      = subSection.Fields.Single(f => f.Key == "ChildProp");
 
         field.Value.Should().Be("deep");
     }
@@ -165,12 +156,10 @@ public class PostgresApiTests : IAsyncLifetime
         await PostUpdate(new[] { new { key = "Simple:Name", value = (string?)null } });
 
         var sections = await FetchSections();
-        var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Simple:Name");
+        var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
         field.Value.Should().BeNull();
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
         _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });

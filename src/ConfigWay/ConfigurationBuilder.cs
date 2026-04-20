@@ -15,8 +15,6 @@ public sealed class ConfigurationBuilder(IHostApplicationBuilder builder)
 
     public ConfigurationBuilder AddOptions<TOptions>(string? sectionName = null) where TOptions : class, new()
     {
-        // TrimEnd(char[]) removes individual characters from the set, not a suffix.
-        // Use a proper suffix-strip instead.
         sectionName ??= StripOptionsSuffix(typeof(TOptions).Name);
         OptionTypes[sectionName] = typeof(TOptions);
         builder.Services.Configure<TOptions>(builder.Configuration.GetSection(sectionName));

@@ -19,6 +19,7 @@ export const fetchConfiguration = (): Promise<Section[]> =>
   post<Section[]>('/GetConfiguration');
 
 export const saveSettings = (
-  settings: Setting[]
+  settings: Setting[],
+  keysToDelete: string[] = [],
 ): Promise<string[]> =>
-  post('/UpdateConfiguration', { settings });
+  post('/UpdateConfiguration', { settings, keysToDelete });
