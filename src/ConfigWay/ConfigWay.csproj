@@ -28,6 +28,7 @@
 
   <PropertyGroup>
     <PackageId>Kododo.ConfigWay</PackageId>
+    <Description>Runtime configuration editor for ASP.NET Core. Persist and hot-reload application settings through a built-in web UI without restarting the application.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

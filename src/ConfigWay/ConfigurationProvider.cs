@@ -1,10 +1,24 @@
-using System.Reflection;
 using Kododo.ConfigWay.Core.Configuration;
 
 namespace Kododo.ConfigWay;
 
+/// <summary>
+/// Exposes a method to trigger a live reload of all ConfigWay-managed configuration values.
+/// This is typically used by the UI editor after saving changes, so that the running
+/// application picks them up immediately without a restart.
+/// </summary>
+/// <remarks>
+/// The implementation is registered as a singleton in the DI container by
+/// <see cref="HostApplicationBuilderExtensions.AddConfigWay"/>.
+/// Consumers who need to trigger a reload programmatically can resolve this interface
+/// from the service provider.
+/// </remarks>
 public interface IConfigurationEditor
 {
+    /// <summary>
+    /// Reloads all ConfigWay overrides from the store and notifies
+    /// <see cref="Microsoft.Extensions.Options.IOptionsMonitor{TOptions}"/> subscribers.
+    /// </summary>
     Task ReloadAllAsync(CancellationToken stoppingToken);
 }
 
@@ -55,54 +69,29 @@ internal sealed class ConfigurationProvider(Configuration configuration)
 
     private static void CollectExactKeys(string prefix, Type type, HashSet<string> keys)
     {
-        foreach (var prop in GetWritableProperties(type))
+        foreach (var prop in TypeHelpers.GetWritableProperties(type))
         {
             var propKey    = $"{prefix}:{prop.Name}";
             var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
-            if (IsLeaf(underlying))
+            if (TypeHelpers.IsLeaf(underlying))
                 keys.Add(propKey);
-            else if (!IsArrayType(underlying))
+            else if (!TypeHelpers.IsArrayOrCollection(underlying))
                 CollectExactKeys(propKey, underlying, keys);
         }
     }
 
     private static void CollectArrayPrefixes(string prefix, Type type, HashSet<string> prefixes)
     {
-        foreach (var prop in GetWritableProperties(type))
+        foreach (var prop in TypeHelpers.GetWritableProperties(type))
         {
             var propKey    = $"{prefix}:{prop.Name}";
             var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
-            if (IsArrayType(underlying))
+            if (TypeHelpers.IsArrayOrCollection(underlying))
                 prefixes.Add(propKey);
-            else if (!IsLeaf(underlying))
+            else if (!TypeHelpers.IsLeaf(underlying))
                 CollectArrayPrefixes(propKey, underlying, prefixes);
         }
     }
-
-    private static bool IsLeaf(Type t) =>
-        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
-
-    private static bool IsNumeric(Type t) =>
-        t == typeof(int)   || t == typeof(long)    || t == typeof(short)   ||
-        t == typeof(float) || t == typeof(double)  || t == typeof(decimal) ||
-        t == typeof(byte)  || t == typeof(uint)    || t == typeof(ulong);
-
-    private static bool IsArrayType(Type t)
-    {
-        if (t.IsArray) return true;
-        if (!t.IsGenericType) return false;
-        var gtd = t.GetGenericTypeDefinition();
-        return gtd == typeof(List<>)                ||
-               gtd == typeof(IList<>)               ||
-               gtd == typeof(IEnumerable<>)         ||
-               gtd == typeof(IReadOnlyList<>)       ||
-               gtd == typeof(ICollection<>)         ||
-               gtd == typeof(IReadOnlyCollection<>);
-    }
-
-    private static IEnumerable<PropertyInfo> GetWritableProperties(Type type) =>
-        type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite);
 }

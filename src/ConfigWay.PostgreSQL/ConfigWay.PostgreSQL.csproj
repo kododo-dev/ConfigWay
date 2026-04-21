@@ -22,6 +22,7 @@
 
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.PostgreSQL</PackageId>
+        <Description>PostgreSQL persistence store for ConfigWay. Retains configuration overrides across application restarts using a single auto-managed database table.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

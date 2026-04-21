@@ -34,6 +34,7 @@
 
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.UI</PackageId>
+        <Description>Embedded web UI for ConfigWay. Adds a React-based editor served directly from the host application — no separate deployment required.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

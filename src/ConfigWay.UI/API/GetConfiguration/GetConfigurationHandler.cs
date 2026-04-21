@@ -4,6 +4,7 @@ using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.UI.DTO;
 using Kododo.Reiho.AspNetCore.API;
 using Microsoft.Extensions.Configuration;
+using static Kododo.ConfigWay.TypeHelpers;
 
 namespace Kododo.ConfigWay.UI.API.GetConfiguration;
 
@@ -18,7 +19,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
             ?? throw new InvalidOperationException(
                 $"{nameof(GetConfigurationHandler)} requires IConfiguration to implement IConfigurationRoot.");
         return new ConfigurationRoot(
-            root.Providers.Where(p => p is not Kododo.ConfigWay.ConfigurationProvider).ToList());
+            root.Providers.Where(p => p is not ConfigurationProvider).ToList());
     }
 
     public Task<Section[]> HandleAsync(GetConfiguration request, CancellationToken cancellationToken)
@@ -56,8 +57,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
         var sections = new List<Section>();
         var arrays   = new List<ArrayField>();
 
-        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                     .Where(p => p.CanRead && p.CanWrite))
+        foreach (var prop in GetWritableProperties(type))
         {
             var propFullKey = $"{fullKey}:{prop.Name}";
             var underlying  = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
@@ -69,8 +69,8 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
             if (IsLeaf(underlying))
             {
                 var isSensitive = IsSensitiveProperty(prop);
-                var rawValue    = appConfiguration[propFullKey];
-                var rawDefault  = _baseConfig[propFullKey];
+                var rawValue   = appConfiguration[propFullKey];
+                var rawDefault = _baseConfig[propFullKey];
                 fields.Add(new Field(
                     Key:          prop.Name,
                     Name:         propName,
@@ -82,7 +82,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
                     Description:  propDescription,
                     Options:      GetEnumOptions(underlying)));
             }
-            else if (IsArrayType(underlying, out var elementType))
+            else if (TryGetCollectionElementType(underlying, out var elementType))
             {
                 arrays.Add(BuildArrayField(
                     localKey:    prop.Name,
@@ -210,46 +210,11 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
     private static bool IsSensitiveProperty(PropertyInfo prop) =>
         prop.GetCustomAttribute<DataTypeAttribute>()?.DataType == DataType.Password;
 
-    private static bool IsLeaf(Type t) =>
-        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
-
-    private static bool IsNumeric(Type t) =>
-        t == typeof(int)   || t == typeof(long)    || t == typeof(short)   ||
-        t == typeof(float) || t == typeof(double)  || t == typeof(decimal) ||
-        t == typeof(byte)  || t == typeof(uint)    || t == typeof(ulong);
-
-    private static bool IsArrayType(Type t, out Type elementType)
-    {
-        if (t.IsArray)
-        {
-            elementType = t.GetElementType()!;
-            return true;
-        }
-
-        if (t.IsGenericType)
-        {
-            var gtd = t.GetGenericTypeDefinition();
-            if (gtd == typeof(List<>)                ||
-                gtd == typeof(IList<>)               ||
-                gtd == typeof(IEnumerable<>)         ||
-                gtd == typeof(IReadOnlyList<>)       ||
-                gtd == typeof(ICollection<>)         ||
-                gtd == typeof(IReadOnlyCollection<>))
-            {
-                elementType = t.GetGenericArguments()[0];
-                return true;
-            }
-        }
-
-        elementType = null!;
-        return false;
-    }
-
     private static FieldType MapFieldType(Type t)
     {
-        if (t == typeof(bool)) return FieldType.Bool;
-        if (IsNumeric(t))      return FieldType.Number;
-        if (t.IsEnum)          return FieldType.Enum;
+        if (t == typeof(bool))  return FieldType.Bool;
+        if (IsNumeric(t))       return FieldType.Number;
+        if (t.IsEnum)           return FieldType.Enum;
         return FieldType.String;
     }
 

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.Core</PackageId>
+        <Description>Core abstractions for ConfigWay — the IStore interface and the Setting model. Reference this package when implementing a custom persistence backend.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

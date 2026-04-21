@@ -6,6 +6,7 @@ using Kododo.Reiho.AspNetCore.API;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using static Kododo.ConfigWay.TypeHelpers;
 
 namespace Kododo.ConfigWay.UI.API.UpdateConfiguration;
 
@@ -50,7 +51,7 @@ internal class UpdateConfigurationHandler(
                 continue;
 
             var instance = Activator.CreateInstance(options.Type)!;
-            PopulateFromConfiguration(instance, options.Key, options.Type);
+            PopulateFromConfiguration(instance, options.Key, options.Type, errors);
 
             foreach (var (key, value) in changes)
             {
@@ -99,9 +100,9 @@ internal class UpdateConfigurationHandler(
         return [.. errors];
     }
 
-    private void PopulateFromConfiguration(object instance, string sectionKey, Type type)
+    private void PopulateFromConfiguration(object instance, string sectionKey, Type type, List<string> errors)
     {
-        foreach (var prop in GetWritableProperties(type))
+        foreach (var prop in TypeHelpers.GetWritableProperties(type))
         {
             var propKey    = $"{sectionKey}:{prop.Name}";
             var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
@@ -109,10 +110,10 @@ internal class UpdateConfigurationHandler(
             if (IsLeaf(underlying))
             {
                 var raw = appConfiguration[propKey];
-                if (raw is not null)
+                if (!string.IsNullOrEmpty(raw))
                 {
                     try { prop.SetValue(instance, ConvertValue(raw, prop.PropertyType)); }
-                    catch { }
+                    catch (Exception ex) { errors.Add($"{propKey}: {ex.Message}"); }
                 }
             }
             else if (IsArrayOrCollection(underlying))
@@ -121,7 +122,7 @@ internal class UpdateConfigurationHandler(
             else
             {
                 var nested = Activator.CreateInstance(underlying)!;
-                PopulateFromConfiguration(nested, propKey, underlying);
+                PopulateFromConfiguration(nested, propKey, underlying, errors);
                 prop.SetValue(instance, nested);
             }
         }
@@ -170,31 +171,6 @@ internal class UpdateConfigurationHandler(
 
     private static PropertyInfo? GetProperty(Type type, string name) =>
         type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-
-    private static IEnumerable<PropertyInfo> GetWritableProperties(Type type) =>
-        type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite);
-
-    private static bool IsLeaf(Type t) =>
-        t == typeof(string) || t == typeof(bool) || IsNumeric(t) || t.IsEnum;
-
-    private static bool IsNumeric(Type t) =>
-        t == typeof(int)     || t == typeof(long)   || t == typeof(short)  ||
-        t == typeof(float)   || t == typeof(double) || t == typeof(decimal) ||
-        t == typeof(byte)    || t == typeof(uint)   || t == typeof(ulong);
-
-    private static bool IsArrayOrCollection(Type t)
-    {
-        if (t.IsArray) return true;
-        if (!t.IsGenericType) return false;
-        var gtd = t.GetGenericTypeDefinition();
-        return gtd == typeof(List<>)                ||
-               gtd == typeof(IList<>)               ||
-               gtd == typeof(IEnumerable<>)         ||
-               gtd == typeof(IReadOnlyList<>)       ||
-               gtd == typeof(ICollection<>)         ||
-               gtd == typeof(IReadOnlyCollection<>);
-    }
 
     private static object? ConvertValue(string? value, Type targetType)
     {
