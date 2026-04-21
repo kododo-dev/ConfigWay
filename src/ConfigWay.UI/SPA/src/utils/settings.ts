@@ -1,7 +1,8 @@
 import type { ArrayField, ArrayItem, Field, Section, Setting } from '../api/api.model';
 
-export const SENSITIVE_MASK  = '***';
-export const SENSITIVE_RESET = '__SENSITIVE_RESET__';
+export const SENSITIVE_MASK          = '***';
+export const SENSITIVE_RESET         = '__SENSITIVE_RESET__';
+export const SENSITIVE_PENDING_RESET = '__SENSITIVE_PENDING_RESET__';
 
 // ── Key construction ──────────────────────────────────────────────────────────
 
@@ -27,7 +28,9 @@ export function collectFields(section: Section, prefix: string): Record<string, 
   const result: Record<string, string | null> = {};
 
   for (const f of section.fields)
-    result[fieldFullKey(prefix, f.key)] = f.value;
+    result[fieldFullKey(prefix, f.key)] = (f.isSensitive && f.hasOverride && f.value === null)
+      ? SENSITIVE_MASK
+      : f.value;
 
   for (const sub of section.sections)
     Object.assign(result, collectFields(sub, fieldFullKey(prefix, sub.key)));
@@ -46,7 +49,9 @@ function collectArrayFields(arr: ArrayField, arrayPrefix: string): Record<string
       result[itemFullKey(arrayPrefix, item.index)] = item.value;
     } else {
       for (const f of item.fields)
-        result[itemFieldFullKey(arrayPrefix, item.index, f.key)] = f.value;
+        result[itemFieldFullKey(arrayPrefix, item.index, f.key)] = (f.isSensitive && f.hasOverride && f.value === null)
+          ? SENSITIVE_MASK
+          : f.value;
       for (const sub of item.sections)
         Object.assign(result, collectFields(sub, `${arrayPrefix}:${item.index}:${sub.key}`));
       for (const nestedArr of item.arrays)
@@ -62,7 +67,7 @@ function collectArrayFields(arr: ArrayField, arrayPrefix: string): Record<string
 export function buildDraft(section: Section): Record<string, string> {
   return Object.fromEntries(
     Object.entries(collectFields(section, section.key))
-      .map(([k, v]) => [k, v === SENSITIVE_MASK ? '' : (v ?? '')])
+      .map(([k, v]) => [k, v === SENSITIVE_MASK ? SENSITIVE_RESET : (v ?? '')])
   );
 }
 
@@ -70,7 +75,7 @@ export function buildDraftFromSections(sections: Section[]): Record<string, stri
   const all: Record<string, string | null> = {};
   for (const s of sections) Object.assign(all, collectFields(s, s.key));
   return Object.fromEntries(
-    Object.entries(all).map(([k, v]) => [k, v === SENSITIVE_MASK ? '' : (v ?? '')])
+    Object.entries(all).map(([k, v]) => [k, v === SENSITIVE_MASK ? SENSITIVE_RESET : (v ?? '')])
   );
 }
 
@@ -86,7 +91,11 @@ export function getChangedSettings(
   for (const [k, v] of Object.entries(original)) {
     if (keysToSkip?.has(k)) continue;
     if (v === SENSITIVE_MASK) {
-      if (draft[k] !== '' && draft[k] !== SENSITIVE_RESET) result.push({ key: k, value: draft[k] });
+      if (draft[k] !== '' && draft[k] !== SENSITIVE_RESET && draft[k] !== SENSITIVE_PENDING_RESET) {
+        result.push({ key: k, value: draft[k] });
+      } else if (draft[k] === '') {
+        result.push({ key: k, value: null });
+      }
       continue;
     }
     if (draft[k] !== (v ?? '')) {
@@ -96,7 +105,7 @@ export function getChangedSettings(
 
   for (const [k, v] of Object.entries(draft)) {
     if (keysToSkip?.has(k)) continue;
-    if (!(k in original) && v !== '') {
+    if (!(k in original) && v !== '' && v !== SENSITIVE_RESET && v !== SENSITIVE_PENDING_RESET) {
       result.push({ key: k, value: v });
     }
   }
@@ -111,10 +120,11 @@ export function sectionHasOverrides(section: Section, prefix: string, draft: Rec
   for (const f of section.fields) {
     const fk = fieldFullKey(prefix, f.key);
     if (f.isSensitive) {
-      if (draft[fk] === SENSITIVE_RESET) continue;
-      if (draft[fk] !== '') return true;
-      if (f.value !== null) return true;
-      continue;
+      if (draft[fk] === SENSITIVE_RESET) {
+        if (f.hasOverride) return true;
+        continue;
+      }
+      return true;
     }
     if (draft[fk] !== (f.defaultValue ?? '')) return true;
   }
@@ -148,10 +158,11 @@ export function arrayHasOverrides(arr: ArrayField, arrayPrefix: string, draft: R
         for (const f of item.fields) {
           const fk = itemFieldFullKey(arrayPrefix, item.index, f.key);
           if (f.isSensitive) {
-            if (draft[fk] === SENSITIVE_RESET) continue;
-            if (draft[fk] !== '') return true;
-            if (f.value !== null) return true;
-            continue;
+            if (draft[fk] === SENSITIVE_RESET) {
+              if (f.hasOverride) return true;
+              continue;
+            }
+            return true;
           }
           if (draft[fk] !== (f.defaultValue ?? '')) return true;
         }
@@ -178,11 +189,23 @@ export interface ResetPatch {
   draftPatch: Record<string, string>;
 }
 
+/**
+ * Computes the draft value to use when resetting a sensitive field:
+ *   hasOverride → SENSITIVE_PENDING_RESET  (will DeleteAsync on save)
+ *   no override but base has a value → SENSITIVE_RESET  (show dots, nothing to delete)
+ *   nothing anywhere → ''
+ */
+function sensitiveDraftReset(f: Field): string {
+  if (f.hasOverride) return SENSITIVE_PENDING_RESET;
+  if (f.value !== null) return SENSITIVE_RESET;
+  return '';
+}
+
 /** Builds a reset patch for a single field. */
 export function buildFieldResetPatch(fullKey: string, field: Field): ResetPatch {
   return {
-    keysToDelete: [fullKey],
-    draftPatch:   { [fullKey]: field.isSensitive ? SENSITIVE_RESET : (field.defaultValue ?? '') },
+    keysToDelete: field.hasOverride ? [fullKey] : [],
+    draftPatch:   { [fullKey]: field.isSensitive ? sensitiveDraftReset(field) : (field.defaultValue ?? '') },
   };
 }
 
@@ -197,8 +220,8 @@ export function buildSectionResetPatch(
 
   for (const f of section.fields) {
     const fk = fieldFullKey(prefix, f.key);
-    keysToDelete.push(fk);
-    draftPatch[fk] = f.isSensitive ? SENSITIVE_RESET : (f.defaultValue ?? '');
+    if (f.hasOverride) keysToDelete.push(fk);
+    draftPatch[fk] = f.isSensitive ? sensitiveDraftReset(f) : (f.defaultValue ?? '');
   }
 
   for (const sub of section.sections) {
@@ -240,8 +263,8 @@ export function buildArrayResetPatch(
       } else {
         for (const f of item.fields) {
           const fk = itemFieldFullKey(arrayPrefix, item.index, f.key);
-          keysToDelete.push(fk);
-          draftPatch[fk] = f.isSensitive ? SENSITIVE_RESET : (f.defaultValue ?? '');
+          if (f.hasOverride) keysToDelete.push(fk);
+          draftPatch[fk] = f.isSensitive ? sensitiveDraftReset(f) : (f.defaultValue ?? '');
         }
         for (const sub of item.sections) {
           const sub_ = buildSectionResetPatch(sub, `${arrayPrefix}:${item.index}:${sub.key}`, draft);
@@ -262,6 +285,59 @@ export function buildArrayResetPatch(
       draftPatch[k] = '__DELETE__';
     }
   });
+
+  return { keysToDelete, draftPatch };
+}
+
+/** Returns true if any field of a non-deletable complex array item differs from its default. */
+export function complexItemHasOverrides(
+  arr: ArrayField,
+  arrayPrefix: string,
+  index: number,
+  draft: Record<string, string>
+): boolean {
+  const item = arr.items.find(i => i.index === index);
+  if (!item || item.isDeletable || arr.isSimple) return false;
+  for (const f of item.fields) {
+    const fk = itemFieldFullKey(arrayPrefix, index, f.key);
+    if (f.isSensitive) {
+      if (draft[fk] === SENSITIVE_RESET) {
+        if (f.hasOverride) return true;
+        continue;
+      }
+      return true;
+    }
+    if (draft[fk] !== (f.defaultValue ?? '')) return true;
+  }
+  for (const sub of item.sections) {
+    if (sectionHasOverrides(sub, `${arrayPrefix}:${index}:${sub.key}`, draft)) return true;
+  }
+  return false;
+}
+
+/** Builds a reset patch for a single non-deletable complex array item. */
+export function buildComplexItemResetPatch(
+  arr: ArrayField,
+  arrayPrefix: string,
+  index: number,
+  draft: Record<string, string>
+): ResetPatch {
+  const keysToDelete: string[] = [];
+  const draftPatch: Record<string, string> = {};
+
+  const item = arr.items.find(i => i.index === index);
+  if (!item || item.isDeletable || arr.isSimple) return { keysToDelete, draftPatch };
+
+  for (const f of item.fields) {
+    const fk = itemFieldFullKey(arrayPrefix, index, f.key);
+    if (f.hasOverride) keysToDelete.push(fk);
+    draftPatch[fk] = f.isSensitive ? sensitiveDraftReset(f) : (f.defaultValue ?? '');
+  }
+  for (const sub of item.sections) {
+    const sub_ = buildSectionResetPatch(sub, `${arrayPrefix}:${index}:${sub.key}`, draft);
+    keysToDelete.push(...sub_.keysToDelete);
+    Object.assign(draftPatch, sub_.draftPatch);
+  }
 
   return { keysToDelete, draftPatch };
 }

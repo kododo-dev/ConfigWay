@@ -457,6 +457,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         string? Value,
         string? DefaultValue,
         bool IsSensitive,
+        bool HasOverride,
         string? Description,
         EnumOptionDto[]? Options);
 
@@ -638,6 +639,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         string? Value,
         string? DefaultValue,
         bool IsSensitive,
+        bool HasOverride,
         string? Description,
         EnumOptionDto[]? Options);
 
@@ -777,6 +779,53 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
         creds.Fields.Single(f => f.Key == "Secret").Value.Should().Be("***");
     }
 
+    [Fact]
+    public async Task GetConfiguration_SensitiveField_InitiallyHasOverrideFalse()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.HasOverride.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_HasOverrideTrueAfterSave()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "secret")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.HasOverride.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_SensitiveField_HasOverrideFalseAfterDelete()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Password", "secret")]);
+        await PostUpdateConfiguration([], keysToDelete: ["Sensitive:Password"]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
+        field.HasOverride.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetConfiguration_NonSensitiveField_InitiallyHasOverrideFalse()
+    {
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
+        field.HasOverride.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_NonSensitiveField_HasOverrideTrueAfterSave()
+    {
+        await PostUpdateConfiguration([new Setting("Sensitive:Username", "admin")]);
+
+        var sections = await FetchSections();
+        var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
+        field.HasOverride.Should().BeTrue();
+    }
+
     private Task<HttpResponseMessage> PostGetConfiguration() =>
         _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });
 
@@ -813,6 +862,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
         string? Value,
         string? DefaultValue,
         bool IsSensitive,
+        bool HasOverride,
         string? Description,
         EnumOptionDto[]? Options);
 
@@ -833,3 +883,4 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
     private sealed record EnumOptionDto(string Value, string Label);
 }
+

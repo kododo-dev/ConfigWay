@@ -5,6 +5,7 @@ export interface Field {
   value: string | null;
   defaultValue: string | null;
   isSensitive: boolean;
+  hasOverride: boolean;
   description: string | null;
   options: { value: string; label: string }[] | null;
 }

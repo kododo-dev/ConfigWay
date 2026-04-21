@@ -8,10 +8,11 @@ import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import RestoreIcon from '@mui/icons-material/Restore';
+import ClearIcon from '@mui/icons-material/Clear';
 import type { Field } from '../../api/api.model';
-import { SENSITIVE_RESET } from '../../utils/settings';
+import { SENSITIVE_RESET, SENSITIVE_PENDING_RESET } from '../../utils/settings';
 import { useI18n } from '../../i18n/I18nContext';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import Highlight from '../common/Highlight';
 
 interface FieldEditorProps {
@@ -36,9 +37,17 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
   const borderFocusColor = theme.palette.primary.main;
   const inputBg          = isDark ? '#141414' : '#ffffff';
 
+  const isChanged = field.isSensitive
+    ? draft !== ((field.value !== null || field.hasOverride) ? SENSITIVE_RESET : '')
+    : draft !== (field.value ?? '');
+
   const isOverridden = onReset != null && (
     field.isSensitive
-      ? draft !== SENSITIVE_RESET && (draft !== '' || field.value !== null)
+      ? (
+          draft === SENSITIVE_RESET
+            ? field.hasOverride
+            : draft !== SENSITIVE_PENDING_RESET && (draft !== '' || field.defaultValue !== null)
+        )
       : draft !== (field.defaultValue ?? '')
   );
 
@@ -117,13 +126,31 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
 
       default:
         if (field.isSensitive) {
+          const showClear = draft === SENSITIVE_RESET
+            ? field.value !== null
+            : (draft !== '' && draft !== SENSITIVE_PENDING_RESET);
+          const sensitivePlaceholder =
+            (draft === SENSITIVE_RESET        && field.value        !== null) ||
+            (draft === SENSITIVE_PENDING_RESET && field.defaultValue !== null)
+              ? '●●●●●●●●'
+              : t.notSet;
           return (
             <InputBase
-              value={draft === SENSITIVE_RESET ? '' : draft}
+              value={(draft === SENSITIVE_RESET || draft === SENSITIVE_PENDING_RESET) ? '' : draft}
               onChange={e => onChange(fullKey, e.target.value)}
-              placeholder={draft === SENSITIVE_RESET ? t.notSet : (field.value !== null ? '●●●●●●●●' : t.notSet)}
+              placeholder={sensitivePlaceholder}
               type="password"
               fullWidth
+              endAdornment={showClear ? (
+                <IconButton
+                  size="small"
+                  onClick={() => onChange(fullKey, '')}
+                  tabIndex={-1}
+                  sx={{ color: isDark ? '#444' : '#bbb', p: '2px', mr: '-2px', '&:hover': { color: theme.palette.error.main } }}
+                >
+                  <ClearIcon sx={{ fontSize: 12 }} />
+                </IconButton>
+              ) : null}
               sx={{
                 ...MONO,
                 fontSize: '0.78rem',
@@ -155,6 +182,16 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
             fullWidth
             multiline
             minRows={1}
+            endAdornment={draft !== '' ? (
+              <IconButton
+                size="small"
+                onClick={() => onChange(fullKey, '')}
+                tabIndex={-1}
+                sx={{ color: isDark ? '#444' : '#bbb', p: '2px', mr: '-2px', alignSelf: 'flex-start', mt: '4px', '&:hover': { color: theme.palette.error.main } }}
+              >
+                <ClearIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            ) : null}
             sx={{
               ...MONO,
               fontSize: '0.78rem',
@@ -199,6 +236,8 @@ const FieldEditor = ({ field, fullKey, draft, onChange, onReset, depth = 0, sear
       borderBottom: `1px solid ${isDark ? '#1e1e1e' : '#f0f0f0'}`,
       '&:last-child': { borderBottom: 'none' },
       minHeight: 44,
+      boxShadow: isChanged ? `inset 2px 0 0 ${alpha(theme.palette.primary.main, 0.6)}` : 'none',
+      transition: 'box-shadow 0.15s',
     }}>
       {/* Field label */}
       <Box sx={{ width: 180, flexShrink: 0, pt: '7px', display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>

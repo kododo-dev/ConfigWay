@@ -78,6 +78,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
                     Value:        isSensitive ? (rawValue  is null ? null : "***") : rawValue,
                     DefaultValue: isSensitive ? (rawDefault is null ? null : "***") : rawDefault,
                     IsSensitive:  isSensitive,
+                    HasOverride:  rawValue != rawDefault,
                     Description:  propDescription,
                     Options:      GetEnumOptions(underlying)));
             }
@@ -192,7 +193,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
         }
 
         var (fields, sections, arrays) = CollectContent("__template", elementType);
-        var emptyFields = fields.Select(f => f with { Value = null, DefaultValue = null }).ToArray();
+        var emptyFields = fields.Select(f => f with { Value = null, DefaultValue = null, HasOverride = false }).ToArray();
 
         return new ArrayItem(
             Index:        -1,

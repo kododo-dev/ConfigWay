@@ -24,6 +24,7 @@ export const translations = {
     resetField: 'Reset to default',
     resetSection: 'Reset section to defaults',
     resetArray: 'Reset array to defaults',
+    resetItem: 'Reset item to defaults',
   },
   pl: {
     appTitle: 'Konfiguracja',
@@ -48,6 +49,7 @@ export const translations = {
     resetField: 'Przywróć domyślną wartość',
     resetSection: 'Przywróć sekcję do wartości domyślnych',
     resetArray: 'Przywróć tablicę do wartości domyślnych',
+    resetItem: 'Przywróć element do wartości domyślnych',
   },
 } as const;
 

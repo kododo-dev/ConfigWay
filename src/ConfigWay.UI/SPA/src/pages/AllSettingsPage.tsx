@@ -88,7 +88,7 @@ const AllSettingsPage = () => {
     keysToDelete.length > 0 ||
     Object.entries(allOriginal).some(([k, v]) =>
       v === SENSITIVE_MASK
-        ? (draft[k] !== '' && draft[k] !== SENSITIVE_RESET)
+        ? draft[k] !== SENSITIVE_RESET
         : draft[k] !== (v ?? '')
     ) ||
     Object.keys(draft).some(k => !(k in allOriginal));

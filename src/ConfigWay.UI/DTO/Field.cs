@@ -7,5 +7,6 @@ internal record Field(
     string? Value,
     string? DefaultValue,
     bool IsSensitive,
+    bool HasOverride,
     string? Description,
     EnumOption[]? Options);

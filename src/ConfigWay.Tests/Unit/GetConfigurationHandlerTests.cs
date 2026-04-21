@@ -605,6 +605,41 @@ public class GetConfigurationHandlerTests
             .Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Handle_SensitiveField_NoOverride_HasOverrideFalse()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Password").HasOverride
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_NonSensitiveField_NoOverride_HasOverrideFalse()
+    {
+        var handler = CreateHandler(new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Username").HasOverride
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_Field_BaseConfigAndAppConfigMatch_HasOverrideFalse()
+    {
+        var handler = CreateHandlerWithData(
+            new() { ["S:Username"] = "base-user" },
+            new CoreOptions("S", typeof(SensitiveOptions)));
+
+        var sections = await handler.HandleAsync(new GetConfiguration(), default);
+
+        sections.Single().Fields.Single(f => f.Key == "Username").HasOverride
+            .Should().BeFalse();
+    }
+
     private GetConfigurationHandler CreateHandler(params CoreOptions[] options) =>
         CreateHandlerWithData(new Dictionary<string, string?>(), options);
 

@@ -16,11 +16,12 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useTheme } from '@mui/material/styles';
 import { useI18n } from '../../i18n/I18nContext';
 import FieldEditor from './FieldEditor';
-import type { ArrayField, ArrayItem } from '../../api/api.model';
+import type { ArrayField, ArrayItem, Field } from '../../api/api.model';
 import {
   itemFullKey, itemFieldFullKey,
   buildNewItemDraft, collectItemKeys, nextArrayIndex,
   buildArrayResetPatch, arrayHasOverrides,
+  buildFieldResetPatch, complexItemHasOverrides, buildComplexItemResetPatch,
 } from '../../utils/settings';
 import type { ResetPatch } from '../../utils/settings';
 import Highlight from '../common/Highlight';
@@ -161,6 +162,19 @@ const ArrayCard = ({
           {allIndices.map(index => {
             const serverItem = array.items.find(i => i.index === index);
             const isDeletable = serverItem ? serverItem.isDeletable : true;
+            const itemHasOvr  = !isDeletable && complexItemHasOverrides(array, arrayPrefix, index, draft);
+
+            const simpleItemField: Field | null = (!array.isSimple || !serverItem) ? null : {
+              key:          String(index),
+              name:         '',
+              type:         (serverItem.type ?? 'String') as Field['type'],
+              value:        serverItem.value,
+              defaultValue: serverItem.defaultValue,
+              isSensitive:  false,
+              hasOverride:  false,
+              description:  null,
+              options:      serverItem.options ?? null,
+            };
 
             return (
               <Box
@@ -180,6 +194,17 @@ const ArrayCard = ({
                   <Typography sx={{ ...MONO, fontSize: '0.7rem', color: isDark ? '#555' : '#bbb', flex: 1 }}>
                     [{index}]
                   </Typography>
+                  {!isDeletable && itemHasOvr && (
+                    <Tooltip title={t.resetItem} placement="top" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => onReset(buildComplexItemResetPatch(array, arrayPrefix, index, draft))}
+                        sx={{ color: isDark ? '#555' : '#ccc', p: '3px', '&:hover': { color: theme.palette.warning.main } }}
+                      >
+                        <RestoreIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   {isDeletable && (
                     <Tooltip title="Remove">
                       <IconButton
@@ -201,6 +226,9 @@ const ArrayCard = ({
                     draft={draft}
                     onChange={onChange}
                     item={serverItem ?? array.template}
+                    onReset={!isDeletable && simpleItemField
+                      ? () => onReset(buildFieldResetPatch(itemFullKey(arrayPrefix, index), simpleItemField))
+                      : undefined}
                     depth={depth}
                     searchQuery={searchQuery}
                   />
@@ -209,8 +237,10 @@ const ArrayCard = ({
                     index={index}
                     arrayPrefix={arrayPrefix}
                     item={serverItem ?? array.template}
+                    isDeletable={isDeletable}
                     draft={draft}
                     onChange={onChange}
+                    onReset={onReset}
                     depth={depth}
                     searchQuery={searchQuery}
                     isSearching={isSearching}
@@ -251,19 +281,21 @@ interface SimpleItemEditorProps {
   item: ArrayItem;
   draft: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  onReset?: () => void;
   depth: number;
   searchQuery: string;
 }
 
-const SimpleItemEditor = ({ index, arrayPrefix, item, draft, onChange, depth, searchQuery }: SimpleItemEditorProps) => {
+const SimpleItemEditor = ({ index, arrayPrefix, item, draft, onChange, onReset, depth, searchQuery }: SimpleItemEditorProps) => {
   const fullKey = itemFullKey(arrayPrefix, index);
-  const syntheticField = {
+  const syntheticField: Field = {
     key:          String(index),
     name:         '',
-    type:         (item.type ?? 'String') as 'String' | 'Bool' | 'Number' | 'Enum',
+    type:         (item.type ?? 'String') as Field['type'],
     value:        item.value,
     defaultValue: item.defaultValue,
     isSensitive:  false,
+    hasOverride:  false,
     description:  null,
     options:      item.options ?? null,
   };
@@ -274,6 +306,7 @@ const SimpleItemEditor = ({ index, arrayPrefix, item, draft, onChange, depth, se
       fullKey={fullKey}
       draft={draft[fullKey] ?? ''}
       onChange={onChange}
+      onReset={onReset}
       depth={depth + 1}
       searchQuery={searchQuery}
     />
@@ -286,15 +319,17 @@ interface ComplexItemContentProps {
   index: number;
   arrayPrefix: string;
   item: ArrayItem;
+  isDeletable: boolean;
   draft: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  onReset: (patch: ResetPatch) => void;
   depth: number;
   searchQuery: string;
   isSearching: boolean;
 }
 
 const ComplexItemContent = ({
-  index, arrayPrefix, item, draft, onChange, depth, searchQuery,
+  index, arrayPrefix, item, isDeletable, draft, onChange, onReset, depth, searchQuery,
 }: ComplexItemContentProps) => {
   const theme  = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -311,6 +346,7 @@ const ComplexItemContent = ({
             fullKey={fk}
             draft={draft[fk] ?? ''}
             onChange={onChange}
+            onReset={!isDeletable ? () => onReset(buildFieldResetPatch(fk, f)) : undefined}
             depth={depth + 1}
             searchQuery={searchQuery}
           />
@@ -327,6 +363,7 @@ const ComplexItemContent = ({
                 prefix={subPrefix}
                 draft={draft}
                 onChange={onChange}
+                onReset={!isDeletable ? onReset : undefined}
                 depth={depth + 1}
                 searchQuery={searchQuery}
                 isDark={isDark}
@@ -360,12 +397,13 @@ interface NestedSectionInItemProps {
   prefix: string;
   draft: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  onReset?: (patch: ResetPatch) => void;
   depth: number;
   searchQuery: string;
   isDark: boolean;
 }
 
-const NestedSectionInItem = ({ section, prefix, draft, onChange, depth, searchQuery, isDark }: NestedSectionInItemProps) => {
+const NestedSectionInItem = ({ section, prefix, draft, onChange, onReset, depth, searchQuery, isDark }: NestedSectionInItemProps) => {
   const theme = useTheme();
   const border = isDark ? '#2a2a2a' : '#eee';
   return (
@@ -375,17 +413,21 @@ const NestedSectionInItem = ({ section, prefix, draft, onChange, depth, searchQu
           {section.name}
         </Typography>
       </Box>
-      {section.fields.map(f => (
-        <FieldEditor
-          key={f.key}
-          field={f}
-          fullKey={`${prefix}:${f.key}`}
-          draft={draft[`${prefix}:${f.key}`] ?? ''}
-          onChange={onChange}
-          depth={depth}
-          searchQuery={searchQuery}
-        />
-      ))}
+      {section.fields.map(f => {
+        const fk = `${prefix}:${f.key}`;
+        return (
+          <FieldEditor
+            key={f.key}
+            field={f}
+            fullKey={fk}
+            draft={draft[fk] ?? ''}
+            onChange={onChange}
+            onReset={onReset ? () => onReset(buildFieldResetPatch(fk, f)) : undefined}
+            depth={depth}
+            searchQuery={searchQuery}
+          />
+        );
+      })}
       {section.sections.map(sub => (
         <NestedSectionInItem
           key={sub.key}
@@ -393,6 +435,7 @@ const NestedSectionInItem = ({ section, prefix, draft, onChange, depth, searchQu
           prefix={`${prefix}:${sub.key}`}
           draft={draft}
           onChange={onChange}
+          onReset={onReset}
           depth={depth + 1}
           searchQuery={searchQuery}
           isDark={isDark}
