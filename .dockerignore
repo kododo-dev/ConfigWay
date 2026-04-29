@@ -1,0 +1,6 @@
+**/.git
+**/.idea
+**/bin
+**/obj
+src/ConfigWay.UI/SPA/node_modules
+src/ConfigWay.UI/SPA/dist

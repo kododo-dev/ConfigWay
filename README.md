@@ -1,8 +1,11 @@
 # ConfigWay
 
 [![CI](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml/badge.svg)](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml)
+[![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://kododo.dev/configway/demo)
 
 Runtime configuration editor for ASP.NET Core. View and modify `IOptions<T>` values at runtime through a built-in web UI without restarting the application.
+
+A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/configway/demo).
 
 ## Packages
 
