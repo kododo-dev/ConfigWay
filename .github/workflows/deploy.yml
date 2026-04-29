@@ -2,8 +2,8 @@ name: Deploy Demo Web
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 env:
   REGISTRY: ghcr.io
