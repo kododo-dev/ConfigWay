@@ -16,7 +16,7 @@ public static class ConfigurationBuilderExtensions
     /// <returns>The same builder instance for method chaining.</returns>
     public static ConfigurationBuilder AddUiEditor(this ConfigurationBuilder builder)
     {
-        builder.Services.AddRequestHandlers();
+        builder.Services.AddRequestHandlers(typeof(ConfigurationBuilderExtensions).Assembly);
         return builder;
     }
 }

@@ -13,7 +13,7 @@ import { useSections } from '../../context/SectionsContext';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 
-const SideMenu = () => {
+const SideMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { sections } = useSections();
@@ -46,7 +46,7 @@ const SideMenu = () => {
       <Box sx={{ flexShrink: 0, py: 1 }}>
         <List dense disablePadding>
           <ListItem disablePadding>
-            <ListItemButton selected={isAll} onClick={() => navigate('/')}>
+            <ListItemButton selected={isAll} onClick={() => { navigate('/'); onNavigate?.(); }}>
               <ListItemIcon sx={isAll ? activeIconSx : iconSx}><TuneIcon /></ListItemIcon>
               <ListItemText primary={t.allSettings} sx={textSx(isAll)} />
             </ListItemButton>
@@ -84,7 +84,7 @@ const SideMenu = () => {
                   <ListItem disablePadding key={s.key}>
                     <ListItemButton
                       selected={active}
-                      onClick={() => navigate(`/section/${encodeURIComponent(s.key)}`)}
+                      onClick={() => { navigate(`/section/${encodeURIComponent(s.key)}`); onNavigate?.(); }}
                     >
                       <ListItemIcon sx={active ? activeIconSx : iconSx}><FolderOpenIcon /></ListItemIcon>
                       <ListItemText primary={s.name} sx={textSx(active)} />

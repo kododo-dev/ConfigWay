@@ -12,7 +12,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import type { SxProps } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import MenuIcon from '@mui/icons-material/Menu';
 import { useI18n } from '../../i18n/I18nContext';
+import { useLayout } from '../../context/LayoutContext';
 
 interface PageHeaderProps {
   title: string;
@@ -38,6 +41,8 @@ const PageHeader = ({
 }: PageHeaderProps) => {
   const theme = useTheme();
   const { t } = useI18n();
+  const { openMobileMenu } = useLayout();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
 
   const borderColor = isDark ? '#2e2e2e' : '#e0e0e0';
@@ -59,8 +64,17 @@ const PageHeader = ({
         borderBottom: `1px solid ${borderColor}`,
         background: headerBg,
         gap: 1.5,
-        minHeight: 56,
+        minHeight: 59,
       }}>
+        {isMobile && (
+          <IconButton
+            size="small"
+            onClick={openMobileMenu}
+            sx={{ color: theme.palette.text.secondary, flexShrink: 0, mr: 0.5, '&:hover': { color: theme.palette.primary.main } }}
+          >
+            <MenuIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
         <Box sx={{ minWidth: 0, flexShrink: 0 }}>
           <Typography sx={{
             ...MONO,

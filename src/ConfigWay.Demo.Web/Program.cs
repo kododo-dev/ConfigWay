@@ -23,17 +23,21 @@ builder.Services.AddSingleton<IValidateOptions<IdentityOptions>, IdentityOptions
 
 var app = builder.Build();
 
-var pathBase = builder.Configuration["ASPNETCORE_PATHBASE"];
-if (!string.IsNullOrEmpty(pathBase))
-    app.UsePathBase(pathBase);
+app.MapGet("/", (
+    IOptionsSnapshot<BrandingOptions> branding,
+    IOptionsSnapshot<SmtpOptions> smtp,
+    IOptionsSnapshot<IdentityOptions> identity,
+    IOptionsSnapshot<StorageOptions> storage,
+    IOptionsSnapshot<WebhooksOptions> webhooks,
+    IOptionsSnapshot<FeatureFlags> flags) =>
+{
+    var html = HomeView.Render(
+        branding.Value, smtp.Value, identity.Value,
+        storage.Value, webhooks.Value, flags.Value);
 
-app.MapGet("/preview/branding", (IOptionsSnapshot<BrandingOptions> opts) => opts.Value);
-app.MapGet("/preview/smtp", (IOptionsSnapshot<SmtpOptions> opts) => opts.Value);
-app.MapGet("/preview/identity", (IOptionsSnapshot<IdentityOptions> opts) => opts.Value);
-app.MapGet("/preview/storage", (IOptionsSnapshot<StorageOptions> opts) => opts.Value);
-app.MapGet("/preview/webhooks", (IOptionsSnapshot<WebhooksOptions> opts) => opts.Value);
-app.MapGet("/preview/feature-flags", (IOptionsSnapshot<FeatureFlags> opts) => opts.Value);
+    return Results.Content(html, "text/html");
+});
 
-app.UseConfigWay("/");
+app.UseConfigWay();
 
 app.Run();

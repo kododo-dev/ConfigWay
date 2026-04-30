@@ -34,6 +34,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>logo.png</PackageIcon>
+    <Version>1.0.0-local</Version>
   </PropertyGroup>
   
 </Project>

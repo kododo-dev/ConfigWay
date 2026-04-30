@@ -34,7 +34,7 @@ public static class EndpointRouteBuilderExtensions
             var configwayEndpoints = endpoints.MapGroup(path);
 
             configwayEndpoints.MapApi();
-            configwayEndpoints.MapEmbeddedSpa();
+            configwayEndpoints.MapEmbeddedSpa(typeof(EndpointRouteBuilderExtensions).Assembly);
 
             return configwayEndpoints;
         }
@@ -42,7 +42,7 @@ public static class EndpointRouteBuilderExtensions
         private void MapApi()
         {
             var api = endpoints.MapGroup("/api");
-            api.MapRequests();
+            api.MapRequests(typeof(EndpointRouteBuilderExtensions).Assembly);
         }
     }
 }
