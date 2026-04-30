@@ -23,6 +23,10 @@ builder.Services.AddSingleton<IValidateOptions<IdentityOptions>, IdentityOptions
 
 var app = builder.Build();
 
+var pathBase = builder.Configuration["PathBase"] ?? "/";
+if(!pathBase.StartsWith("/")) pathBase = "/" + pathBase;
+if(!pathBase.EndsWith("/")) pathBase += "/";
+
 app.MapGet("/", (
     IOptionsSnapshot<BrandingOptions> branding,
     IOptionsSnapshot<SmtpOptions> smtp,
@@ -32,6 +36,7 @@ app.MapGet("/", (
     IOptionsSnapshot<FeatureFlags> flags) =>
 {
     var html = HomeView.Render(
+        pathBase,
         branding.Value, smtp.Value, identity.Value,
         storage.Value, webhooks.Value, flags.Value);
 
