@@ -7,9 +7,9 @@ namespace Kododo.ConfigWay.PostgreSQL.Tests.Fixtures;
 
 public sealed class PostgreSqlFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
         .WithImage("postgres:16-alpine")
-        .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(5432))
+        .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(5432))
         .Build();
 
     public string ConnectionString => _container.GetConnectionString();
