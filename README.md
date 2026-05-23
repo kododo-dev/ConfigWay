@@ -7,6 +7,14 @@ Runtime configuration editor for ASP.NET Core. View and modify `IOptions<T>` val
 
 A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/configway/demo).
 
+## UI
+
+![Overview](docs/screenshots/01-overview.png)
+
+![Field types](docs/screenshots/02-fields.png)
+
+![Array editor](docs/screenshots/03-array-editor.png)
+
 ## Packages
 
 | Package | NuGet | Description |
@@ -40,7 +48,7 @@ app.UseConfigWay(); // mounts UI at /config
 
 ```csharp
 // Section name inferred from type — "Options" suffix stripped
-x.AddOptions<EmailOptions>();   // → "Email"
+x.AddOptions<EmailOptions>();   // -> "Email"
 
 // Override explicitly
 x.AddOptions<EmailOptions>("Mail");
@@ -56,9 +64,9 @@ ConfigWay maps C# property types to dedicated UI controls automatically:
 |---|---|
 | `string` | Text input |
 | `bool` | Toggle switch |
-| `int`, `long`, `double`, `decimal`, … | Numeric input |
+| `int`, `long`, `double`, `decimal`, ... | Numeric input |
 | `enum` | Dropdown select |
-| `T[]`, `List<T>`, `IList<T>`, … | Collapsible array editor |
+| `T[]`, `List<T>`, `IList<T>`, ... | Collapsible array editor |
 
 Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
 
@@ -66,7 +74,7 @@ Nullable variants (`bool?`, `int?`, etc.) are handled the same way.
 
 Collection properties (`T[]`, `List<T>`, `IList<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`) are rendered as a collapsible array editor with add and remove buttons.
 
-**Simple arrays** — scalar element types (`string[]`, `int[]`, `Severity[]`, …) show one input field per item:
+Simple arrays with scalar element types (`string[]`, `int[]`, `Severity[]`, ...) show one input field per item:
 
 ```csharp
 public class WebhooksOptions
@@ -76,7 +84,7 @@ public class WebhooksOptions
 }
 ```
 
-**Complex arrays** — class element types show a full sub-form per item, supporting nested objects and all scalar field types:
+Complex arrays with class element types show a full sub-form per item, supporting nested objects and all scalar field types:
 
 ```csharp
 public class WebhookEndpoint
@@ -93,21 +101,19 @@ public class WebhooksOptions
 }
 ```
 
-Items that come from lower configuration layers (appsettings.json, environment variables) are marked as non-deletable — they can be edited but not removed, because deleting them from the ConfigWay store would not suppress the underlying value.
+Items that come from lower configuration layers (appsettings.json, environment variables) are marked as non-deletable. They can be edited but not removed, because deleting them from the ConfigWay store would not suppress the underlying value.
 
 ## Reset to default
 
-Every field, section and array exposes a **↩ reset** button that appears when the current value differs from the value in the underlying configuration layers (appsettings.json, environment variables, etc.).
-
-Resetting removes the ConfigWay-stored override so the original value from those lower layers takes effect again, without restarting the application.
+Every field, section and array exposes a reset button that appears when the current value differs from the value in the underlying configuration layers (appsettings.json, environment variables, etc.). Resetting removes the ConfigWay-stored override so the original value from those lower layers takes effect again, without restarting the application.
 
 | Scope | Behaviour |
 |---|---|
-| **Field** | Removes the single key from the ConfigWay store. The ↩ button is shown only when the field differs from its base-config value. |
-| **Section** | Resets all fields and arrays inside the section recursively. Items added via ConfigWay are removed; non-deletable items are reset to their base-config values. |
-| **Array** | Items added via ConfigWay are removed. Non-deletable items (those that exist in lower config layers) have their values reset to the base-config value. |
+| Field | Removes the single key from the ConfigWay store. The reset button is shown only when the field differs from its base-config value. |
+| Section | Resets all fields and arrays inside the section recursively. Items added via ConfigWay are removed; non-deletable items are reset to their base-config values. |
+| Array | Items added via ConfigWay are removed. Non-deletable items (those that exist in lower config layers) have their values reset to the base-config value. |
 
-Pending resets are batched with any other edits and applied together when the **Save** button is pressed. Pressing **Discard** also discards pending resets.
+Pending resets are batched with any other edits and applied together when Save is pressed. Pressing Discard also discards pending resets.
 
 ## Sensitive fields
 
@@ -127,10 +133,10 @@ public class SmtpCredentials
 
 Sensitive fields behave as follows:
 
-- **UI** — the input renders as a password field (`●●●●●`). A placeholder indicates whether a value is currently stored.
-- **API** — the real value is never returned. When a value is stored, the API returns `"***"`. When nothing is stored, it returns `null`.
-- **Saving** — submitting an empty value for a sensitive field is treated as "no change". To remove a stored sensitive value, use the ↩ reset button.
-- **Reset** — the ↩ button appears when a sensitive value is stored. Resetting deletes the stored value; the underlying configuration layer (appsettings.json, environment variable) takes effect again without a restart.
+- The input renders as a password field (`*****`). A placeholder indicates whether a value is currently stored.
+- The real value is never returned by the API. When a value is stored, the API returns `"***"`. When nothing is stored, it returns `null`.
+- Submitting an empty value is treated as "no change". To remove a stored sensitive value, use the reset button.
+- The reset button appears when a sensitive value is stored. Resetting deletes the stored value and lets the underlying configuration layer (appsettings.json, environment variable) take effect again without a restart.
 
 ## Customizing UI labels and descriptions
 
@@ -155,7 +161,7 @@ public class EmailOptions
 
 `Name` overrides the label shown next to the field or in the section header. When omitted, the property name is used as-is.
 
-`Description` renders a small **ⓘ** icon next to the label — hovering over it shows the description as a tooltip. Works on both fields and sections.
+`Description` renders a small info icon next to the label. Hovering over it shows the description as a tooltip. Works on both fields and sections.
 
 `[Display]` on enum members controls the label shown in the dropdown. The underlying member name is still used as the stored value.
 
@@ -206,17 +212,6 @@ builder.AddConfigWay(x =>
     x.Store = new MyCustomStore(); // implements IStore
     x.AddOptions<AppOptions>();
 });
-```
-
-## Project structure
-
-```
-src/
-├── ConfigWay.Core/          # Abstractions: IStore and shared models
-├── ConfigWay/               # Main package: DI registration, in-memory store
-├── ConfigWay.UI/            # Embedded SPA web UI
-├── ConfigWay.PostgreSQL/    # PostgreSQL IStore implementation
-└── ConfigWay.Demo.Web/      # Demo application
 ```
 
 ## License
