@@ -14,7 +14,7 @@
 
     <ItemGroup>
         <PackageReference Include="Kododo.Reiho.AspNetCore" Version="1.0.0" />
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.26" />
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.28" />
     </ItemGroup>
 
     <ItemGroup>
