@@ -14,7 +14,7 @@
 
     <ItemGroup>
         <PackageReference Include="Kododo.Reiho.AspNetCore" Version="1.0.0" />
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.28" />
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.*" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,6 +31,12 @@
             <_Parameter1>Kododo.ConfigWay.Tests</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
+
+    <Target Name="_PreserveFileProvidersEmbeddedPackageReference" AfterTargets="AddPrunePackageReferences">
+        <ItemGroup>
+            <PrunePackageReference Remove="Microsoft.Extensions.FileProviders.Embedded" />
+        </ItemGroup>
+    </Target>
 
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.UI</PackageId>
