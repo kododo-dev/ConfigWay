@@ -22,7 +22,15 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
     {
         await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync();
-        await using var cmd = new NpgsqlCommand("DELETE FROM configway.settings", conn);
+        const string sql = """
+                            DO $$
+                            BEGIN
+                                IF to_regclass('configway.settings') IS NOT NULL THEN
+                                    DELETE FROM configway.settings;
+                                END IF;
+                            END $$;
+                            """;
+        await using var cmd = new NpgsqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync();
     }
 }

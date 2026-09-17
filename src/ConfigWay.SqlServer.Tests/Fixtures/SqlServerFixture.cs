@@ -19,7 +19,11 @@ public sealed class SqlServerFixture : IAsyncLifetime
     {
         await using var conn = new SqlConnection(ConnectionString);
         await conn.OpenAsync();
-        await using var cmd = new SqlCommand("DELETE FROM configway.settings", conn);
+        const string sql = """
+                            IF OBJECT_ID('configway.settings', 'U') IS NOT NULL
+                                DELETE FROM configway.settings;
+                            """;
+        await using var cmd = new SqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync();
     }
 }

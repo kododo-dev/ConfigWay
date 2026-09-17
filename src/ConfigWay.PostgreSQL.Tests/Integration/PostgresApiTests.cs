@@ -21,6 +21,8 @@ public class PostgresApiTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        await _fixture.ResetAsync();
+
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
 
@@ -37,8 +39,6 @@ public class PostgresApiTests : IAsyncLifetime
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
-
-        await _fixture.ResetAsync();
     }
 
     public async Task DisposeAsync()
