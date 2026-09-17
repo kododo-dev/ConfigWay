@@ -23,13 +23,14 @@ A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/confi
 | `Kododo.ConfigWay.Core` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.Core)](https://www.nuget.org/packages/Kododo.ConfigWay.Core) | Abstractions and interfaces (for extension authors) |
 | `Kododo.ConfigWay.UI` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.UI)](https://www.nuget.org/packages/Kododo.ConfigWay.UI) | Embedded web UI |
 | `Kododo.ConfigWay.PostgreSQL` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.PostgreSQL)](https://www.nuget.org/packages/Kododo.ConfigWay.PostgreSQL) | PostgreSQL persistence store |
+| `Kododo.ConfigWay.SqlServer` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.SqlServer)](https://www.nuget.org/packages/Kododo.ConfigWay.SqlServer) | SQL Server persistence store |
 
 ## Quick start
 
 ```bash
 dotnet add package Kododo.ConfigWay
 dotnet add package Kododo.ConfigWay.UI
-dotnet add package Kododo.ConfigWay.PostgreSQL  # optional — for persistence
+dotnet add package Kododo.ConfigWay.PostgreSQL  # or Kododo.ConfigWay.SqlServer — optional, for persistence
 ```
 
 ```csharp
@@ -39,6 +40,7 @@ builder.AddConfigWay(x =>
     x.AddOptions<AppOptions>();
     x.AddUiEditor();
     x.UsePostgreSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    // or: x.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
 });
 
 app.UseConfigWay(); // mounts UI at /config

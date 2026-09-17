@@ -50,6 +50,9 @@ jobs:
           dotnet build src/ConfigWay.PostgreSQL/ConfigWay.PostgreSQL.csproj \
             --configuration Release \
             -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet build src/ConfigWay.SqlServer/ConfigWay.SqlServer.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Pack
         run: |
@@ -69,6 +72,10 @@ jobs:
             --configuration Release --no-build \
             -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./nupkgs
+          dotnet pack src/ConfigWay.SqlServer/ConfigWay.SqlServer.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
 
       - name: Push to NuGet
         run: |
@@ -85,6 +92,10 @@ jobs:
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
           dotnet nuget push ./nupkgs/Kododo.ConfigWay.PostgreSQL.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push ./nupkgs/Kododo.ConfigWay.SqlServer.*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate

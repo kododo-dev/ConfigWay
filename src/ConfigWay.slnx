@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/Externals/">
     <Project Path="ConfigWay.PostgreSQL/ConfigWay.PostgreSQL.csproj" />
+    <Project Path="ConfigWay.SqlServer/ConfigWay.SqlServer.csproj" />
   </Folder>
   <Project Path="ConfigWay.Core/ConfigWay.Core.csproj" />
   <Project Path="ConfigWay.UI/ConfigWay.UI.csproj" />
@@ -11,5 +12,6 @@
   <Folder Name="/Tests/">
     <Project Path="ConfigWay.Tests/ConfigWay.Tests.csproj" />
     <Project Path="ConfigWay.PostgreSQL.Tests/ConfigWay.PostgreSQL.Tests.csproj" />
+    <Project Path="ConfigWay.SqlServer.Tests/ConfigWay.SqlServer.Tests.csproj" />
   </Folder>
 </Solution>
