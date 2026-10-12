@@ -3,6 +3,13 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- The test host follows the runtime the tests run on. -->
+  <PropertyGroup>
+    <AspNetCoreTestVersion>10.0.12</AspNetCoreTestVersion>
+    <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.31</AspNetCoreTestVersion>
+    <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.20</AspNetCoreTestVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Microsoft.Extensions.* -->
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
@@ -12,8 +19,8 @@
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
 
     <!-- ASP.NET Core test hosting -->
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(AspNetCoreTestVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(AspNetCoreTestVersion)" />
 
     <!-- Data access -->
     <PackageVersion Include="Npgsql" Version="10.0.3" />
