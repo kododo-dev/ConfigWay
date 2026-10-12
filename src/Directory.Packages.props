@@ -35,7 +35,7 @@
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.3" />
 
     <!-- ConfigWay.UI -->
-    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="1.0.0" />
+    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="1.0.1" />
 
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
