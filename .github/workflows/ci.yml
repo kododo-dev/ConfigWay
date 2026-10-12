@@ -47,7 +47,7 @@ jobs:
         run: >
           dotnet test src/ConfigWay.Tests/ConfigWay.Tests.csproj
           --no-build --configuration Release
-          --logger "trx;LogFileName=unit-results.trx"
+          --logger "trx;LogFilePrefix=unit-results"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
