@@ -79,23 +79,7 @@ jobs:
 
       - name: Push to NuGet
         run: |
-          dotnet nuget push ./nupkgs/Kododo.ConfigWay.Core.*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-          dotnet nuget push ./nupkgs/Kododo.ConfigWay.*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-          dotnet nuget push ./nupkgs/Kododo.ConfigWay.UI.*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-          dotnet nuget push ./nupkgs/Kododo.ConfigWay.PostgreSQL.*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-          dotnet nuget push ./nupkgs/Kododo.ConfigWay.SqlServer.*.nupkg \
+          dotnet nuget push ./nupkgs/*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
