@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.Core.Model;
 using Kododo.ConfigWay.Core.Store;
@@ -33,7 +32,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -68,7 +67,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -80,7 +79,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e == AlwaysFailValidator.ErrorMessage);
+        Assert.Single(errors, e => e == AlwaysFailValidator.ErrorMessage);
     }
 
     [Fact]
@@ -116,7 +115,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e == ConditionalValidator.ErrorMessage);
+        Assert.Single(errors, e => e == ConditionalValidator.ErrorMessage);
     }
 
     [Fact]
@@ -128,7 +127,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -141,7 +140,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Theory]
@@ -156,7 +155,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -167,7 +166,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e.Contains("T:Enabled"));
+        Assert.Single(errors, e => e.Contains("T:Enabled"));
     }
 
     [Fact]
@@ -178,7 +177,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -189,7 +188,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e.Contains("T:Count"));
+        Assert.Single(errors, e => e.Contains("T:Count"));
     }
 
     [Theory]
@@ -205,7 +204,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -216,7 +215,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e.Contains("T:Level"));
+        Assert.Single(errors, e => e.Contains("T:Level"));
     }
 
     [Fact]
@@ -227,7 +226,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -238,7 +237,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().ContainSingle(e => e.Contains("Simple:DoesNotExist"));
+        Assert.Single(errors, e => e.Contains("Simple:DoesNotExist"));
     }
 
     [Fact]
@@ -249,7 +248,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -273,7 +272,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -289,7 +288,7 @@ public class UpdateConfigurationHandlerTests
 
         var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
 
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]

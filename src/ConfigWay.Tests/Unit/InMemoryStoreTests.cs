@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Kododo.ConfigWay.Core.Model;
 using Xunit;
 
@@ -15,7 +14,7 @@ public class InMemoryStoreTests
     public async Task GetAll_WhenEmpty_ReturnsEmptyList()
     {
         var result = await _store.GetAllAsync();
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -25,9 +24,9 @@ public class InMemoryStoreTests
 
         var result = await _store.GetAllAsync();
 
-        result.Should().HaveCount(2);
-        result.Should().Contain(s => s.Key == "Key1" && s.Value == "Value1");
-        result.Should().Contain(s => s.Key == "Key2" && s.Value == "Value2");
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, s => s.Key == "Key1" && s.Value == "Value1");
+        Assert.Contains(result, s => s.Key == "Key2" && s.Value == "Value2");
     }
 
     [Fact]
@@ -38,8 +37,8 @@ public class InMemoryStoreTests
 
         var result = await _store.GetAllAsync();
 
-        result.Should().ContainSingle();
-        result.Single().Value.Should().Be("NewValue");
+        Assert.Single(result);
+        Assert.Equal("NewValue", result.Single().Value);
     }
 
     [Fact]
@@ -50,7 +49,7 @@ public class InMemoryStoreTests
         await _store.SetAsync([new Setting("Key", "C")]);
 
         var result = await _store.GetAllAsync();
-        result.Should().ContainSingle(s => s.Key == "Key");
+        Assert.Single(result, s => s.Key == "Key");
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public class InMemoryStoreTests
         await _store.SetAsync([new Setting("Key", null)]);
 
         var result = await _store.GetAllAsync();
-        result.Single(s => s.Key == "Key").Value.Should().BeNull();
+        Assert.Null(result.Single(s => s.Key == "Key").Value);
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class InMemoryStoreTests
         await _store.SetAsync([new Setting("Key", "Value")]);
 
         var result = await _store.GetAllAsync();
-        result.Single(s => s.Key == "Key").Value.Should().Be("Value");
+        Assert.Equal("Value", result.Single(s => s.Key == "Key").Value);
     }
 
     [Fact]
@@ -82,6 +81,6 @@ public class InMemoryStoreTests
         await _store.SetAsync(settings);
 
         var result = await _store.GetAllAsync();
-        result.Should().HaveCount(5);
+        Assert.Equal(5, result.Count);
     }
 }
