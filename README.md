@@ -139,6 +139,7 @@ Sensitive fields behave as follows:
 - The real value is never returned by the API. When a value is stored, the API returns `"***"`. When nothing is stored, it returns `null`.
 - Submitting an empty value is treated as "no change". To remove a stored sensitive value, use the reset button.
 - The reset button appears when a sensitive value is stored. Resetting deletes the stored value and lets the underlying configuration layer (appsettings.json, environment variable) take effect again without a restart.
+- Sensitive values are masked in the UI and the API only. The store keeps them as plain text, so restrict access to the database accordingly.
 
 ## Customizing UI labels and descriptions
 
@@ -203,6 +204,11 @@ app.UseConfigWay()
 ```
 
 > Use `IOptionsSnapshot<T>` or `IOptionsMonitor<T>` in your code to always get the latest values after a reload.
+
+## Limitations
+
+- Changes are reloaded only in the instance that saved them. When the app runs as several replicas, the other replicas pick up the new values after a restart.
+- Saves do not check for concurrent edits. If two people edit the same section at the same time, the last save wins.
 
 ## Custom store
 
