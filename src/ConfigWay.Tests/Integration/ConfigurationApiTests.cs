@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Kododo.ConfigWay.Core.Model;
 using Kododo.ConfigWay.UI;
 using Microsoft.AspNetCore.Builder;
@@ -53,7 +52,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_Returns200()
     {
         var response = await PostGetConfiguration();
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
@@ -61,9 +60,11 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
 
-        sections.Should().HaveCount(5);
-        sections.Select(s => s.Key)
-            .Should().BeEquivalentTo("Simple", "Nested", "Typed", "Arrays", "Complex");
+        Assert.Equal(5, sections.Length);
+        Assert.Equivalent(
+            new[] { "Simple", "Nested", "Typed", "Arrays", "Complex" },
+            sections.Select(s => s.Key),
+            strict: true);
     }
 
     [Fact]
@@ -72,9 +73,9 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
 
         var simple = sections.Single(s => s.Key == "Simple");
-        simple.Fields.Select(f => f.Key).Should().BeEquivalentTo("Name", "Value");
-        simple.Sections.Should().BeEmpty();
-        simple.Arrays.Should().BeEmpty();
+        Assert.Equivalent(new[] { "Name", "Value" }, simple.Fields.Select(f => f.Key), strict: true);
+        Assert.Empty(simple.Sections);
+        Assert.Empty(simple.Arrays);
     }
 
     [Fact]
@@ -83,8 +84,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
 
         var nested = sections.Single(s => s.Key == "Nested");
-        nested.Fields.Should().ContainSingle(f => f.Key == "TopLevel");
-        nested.Sections.Should().ContainSingle(s => s.Key == "Child");
+        Assert.Single(nested.Fields, f => f.Key == "TopLevel");
+        Assert.Single(nested.Sections, s => s.Key == "Child");
     }
 
     [Fact]
@@ -92,8 +93,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
 
-        sections.SelectMany(s => s.Fields)
-            .Should().AllSatisfy(f => f.Value.Should().BeNull());
+        Assert.All(sections.SelectMany(s => s.Fields), f => Assert.Null(f.Value));
     }
 
     [Fact]
@@ -102,9 +102,10 @@ public class ConfigurationApiTests : IAsyncLifetime
         var settings = new[] { new Setting("Simple:Name", "Alice") };
         var response = await PostUpdateConfiguration(settings);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        errors.Should().BeEmpty();
+        Assert.NotNull(errors);
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -117,7 +118,7 @@ public class ConfigurationApiTests : IAsyncLifetime
             .Single(s => s.Key == "Simple")
             .Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().Be("Alice");
+        Assert.Equal("Alice", field.Value);
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().Be("Second");
+        Assert.Equal("Second", field.Value);
     }
 
     [Fact]
@@ -145,8 +146,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var fields = sections.Single(s => s.Key == "Simple").Fields;
 
-        fields.Single(f => f.Key == "Name").Value.Should().Be("Bob");
-        fields.Single(f => f.Key == "Value").Value.Should().Be("42");
+        Assert.Equal("Bob", fields.Single(f => f.Key == "Name").Value);
+        Assert.Equal("42", fields.Single(f => f.Key == "Value").Value);
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var subSection = sections.Single(s => s.Key == "Nested").Sections.Single();
         var field = subSection.Fields.Single(f => f.Key == "ChildProp");
 
-        field.Value.Should().Be("deep");
+        Assert.Equal("deep", field.Value);
     }
 
     [Fact]
@@ -170,7 +171,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().BeNull();
+        Assert.Null(field.Value);
     }
 
     [Fact]
@@ -178,7 +179,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Label");
-        field.Type.Should().Be("String");
+        Assert.Equal("String", field.Type);
     }
 
     [Fact]
@@ -186,7 +187,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Enabled");
-        field.Type.Should().Be("Bool");
+        Assert.Equal("Bool", field.Type);
     }
 
     [Fact]
@@ -194,7 +195,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Count");
-        field.Type.Should().Be("Number");
+        Assert.Equal("Number", field.Type);
     }
 
     [Fact]
@@ -202,7 +203,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
-        field.Type.Should().Be("Enum");
+        Assert.Equal("Enum", field.Type);
     }
 
     [Fact]
@@ -210,8 +211,8 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
-        field.Options.Should().NotBeNull();
-        field.Options!.Select(o => o.Value).Should().BeEquivalentTo("Low", "Medium", "High");
+        Assert.NotNull(field.Options);
+        Assert.Equivalent(new[] { "Low", "Medium", "High" }, field.Options!.Select(o => o.Value), strict: true);
     }
 
     [Fact]
@@ -219,9 +220,9 @@ public class ConfigurationApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var options = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level").Options!;
-        options.Single(o => o.Value == "Low").Label.Should().Be("Low priority");
-        options.Single(o => o.Value == "High").Label.Should().Be("High priority");
-        options.Single(o => o.Value == "Medium").Label.Should().Be("Medium");
+        Assert.Equal("Low priority", options.Single(o => o.Value == "Low").Label);
+        Assert.Equal("High priority", options.Single(o => o.Value == "High").Label);
+        Assert.Equal("Medium", options.Single(o => o.Value == "Medium").Label);
     }
 
     [Fact]
@@ -231,7 +232,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Enabled");
-        field.Value.Should().Be("True");
+        Assert.Equal("True", field.Value);
     }
 
     [Fact]
@@ -241,7 +242,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Count");
-        field.Value.Should().Be("99");
+        Assert.Equal("99", field.Value);
     }
 
     [Fact]
@@ -251,7 +252,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Typed").Fields.Single(f => f.Key == "Level");
-        field.Value.Should().Be("High");
+        Assert.Equal("High", field.Value);
     }
 
     [Fact]
@@ -260,8 +261,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var section = sections.Single(s => s.Key == "Arrays");
 
-        section.Arrays.Should().Contain(a => a.Key == "Tags");
-        section.Arrays.Should().Contain(a => a.Key == "Ports");
+        Assert.Contains(section.Arrays, a => a.Key == "Tags");
+        Assert.Contains(section.Arrays, a => a.Key == "Ports");
     }
 
     [Fact]
@@ -270,7 +271,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
 
-        arr.IsSimple.Should().BeTrue();
+        Assert.True(arr.IsSimple);
     }
 
     [Fact]
@@ -279,7 +280,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
 
-        arr.Template.Type.Should().Be("String");
+        Assert.Equal("String", arr.Template.Type);
     }
 
     [Fact]
@@ -288,7 +289,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Ports");
 
-        arr.Template.Type.Should().Be("Number");
+        Assert.Equal("Number", arr.Template.Type);
     }
 
     [Fact]
@@ -297,7 +298,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
 
-        arr.Items.Should().BeEmpty();
+        Assert.Empty(arr.Items);
     }
 
     [Fact]
@@ -306,7 +307,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items");
 
-        arr.IsSimple.Should().BeFalse();
+        Assert.False(arr.IsSimple);
     }
 
     [Fact]
@@ -315,9 +316,11 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items");
 
-        arr.Template.Fields.Should().NotBeEmpty();
-        arr.Template.Fields.Select(f => f.Key)
-            .Should().BeEquivalentTo("Name", "Priority", "Category");
+        Assert.NotEmpty(arr.Template.Fields);
+        Assert.Equivalent(
+            new[] { "Name", "Priority", "Category" },
+            arr.Template.Fields.Select(f => f.Key),
+            strict: true);
     }
 
     [Fact]
@@ -328,7 +331,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var arr = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags");
 
-        arr.Items.Should().ContainSingle(i => i.Index == 0 && i.Value == "production");
+        Assert.Single(arr.Items, i => i.Index == 0 && i.Value == "production");
     }
 
     [Fact]
@@ -343,8 +346,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
 
-        items.Should().HaveCount(3);
-        items.Select(i => i.Value).Should().BeEquivalentTo("dev", "staging", "production");
+        Assert.Equal(3, items.Length);
+        Assert.Equivalent(new[] { "dev", "staging", "production" }, items.Select(i => i.Value), strict: true);
     }
 
     [Fact]
@@ -359,9 +362,9 @@ public class ConfigurationApiTests : IAsyncLifetime
         var item = sections.Single(s => s.Key == "Complex").Arrays.Single(a => a.Key == "Items")
             .Items.Single();
 
-        item.Index.Should().Be(0);
-        item.Fields.Single(f => f.Key == "Name").Value.Should().Be("First");
-        item.Fields.Single(f => f.Key == "Priority").Value.Should().Be("10");
+        Assert.Equal(0, item.Index);
+        Assert.Equal("First", item.Fields.Single(f => f.Key == "Name").Value);
+        Assert.Equal("10", item.Fields.Single(f => f.Key == "Priority").Value);
     }
 
     [Fact]
@@ -377,8 +380,8 @@ public class ConfigurationApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
 
-        items.Should().ContainSingle(i => i.Index == 0);
-        items.Should().NotContain(i => i.Index == 1);
+        Assert.Single(items, i => i.Index == 0);
+        Assert.DoesNotContain(items, i => i.Index == 1);
     }
 
     [Fact]
@@ -388,9 +391,10 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var response = await PostUpdateConfiguration([], keysToDelete: ["Arrays:Tags:0"]);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        errors.Should().BeEmpty();
+        Assert.NotNull(errors);
+        Assert.Empty(errors);
     }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
@@ -418,8 +422,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     public async Task GetConfiguration_Field_DefaultValueNullWithNoBaseConfig()
     {
         var sections = await FetchSections();
-        sections.Single(s => s.Key == "Simple").Fields
-            .Should().AllSatisfy(f => f.DefaultValue.Should().BeNull());
+        Assert.All(sections.Single(s => s.Key == "Simple").Fields, f => Assert.Null(f.DefaultValue));
     }
 
     [Fact]
@@ -429,7 +432,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items.Single();
-        item.DefaultValue.Should().BeNull();
+        Assert.Null(item.DefaultValue);
     }
 
     [Fact]
@@ -439,7 +442,7 @@ public class ConfigurationApiTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items.Single();
-        item.IsDeletable.Should().BeTrue();
+        Assert.True(item.IsDeletable);
     }
 
     private sealed record SectionDto(
@@ -526,7 +529,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
-        field.DefaultValue.Should().Be("DefaultName");
+        Assert.Equal("DefaultName", field.DefaultValue);
     }
 
     [Fact]
@@ -534,8 +537,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
-        field.Value.Should().Be("DefaultName");
-        field.DefaultValue.Should().Be("DefaultName");
+        Assert.Equal("DefaultName", field.Value);
+        Assert.Equal("DefaultName", field.DefaultValue);
     }
 
     [Fact]
@@ -545,8 +548,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
-        field.Value.Should().Be("Override");
-        field.DefaultValue.Should().Be("DefaultName");
+        Assert.Equal("Override", field.Value);
+        Assert.Equal("DefaultName", field.DefaultValue);
     }
 
     [Fact]
@@ -557,8 +560,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
-        field.Value.Should().Be("DefaultName");
-        field.DefaultValue.Should().Be("DefaultName");
+        Assert.Equal("DefaultName", field.Value);
+        Assert.Equal("DefaultName", field.DefaultValue);
     }
 
     [Fact]
@@ -566,8 +569,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
-        items.Single(i => i.Index == 0).DefaultValue.Should().Be("base-tag");
-        items.Single(i => i.Index == 1).DefaultValue.Should().Be("base-tag-2");
+        Assert.Equal("base-tag", items.Single(i => i.Index == 0).DefaultValue);
+        Assert.Equal("base-tag-2", items.Single(i => i.Index == 1).DefaultValue);
     }
 
     [Fact]
@@ -575,7 +578,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var items = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags").Items;
-        items.Should().AllSatisfy(i => i.IsDeletable.Should().BeFalse());
+        Assert.All(items, i => Assert.False(i.IsDeletable));
     }
 
     [Fact]
@@ -586,8 +589,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         var sections = await FetchSections();
         var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags")
             .Items.Single(i => i.Index == 0);
-        item.Value.Should().Be("overridden");
-        item.DefaultValue.Should().Be("base-tag");
+        Assert.Equal("overridden", item.Value);
+        Assert.Equal("base-tag", item.DefaultValue);
     }
 
     [Fact]
@@ -599,8 +602,8 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         var sections = await FetchSections();
         var item = sections.Single(s => s.Key == "Arrays").Arrays.Single(a => a.Key == "Tags")
             .Items.Single(i => i.Index == 0);
-        item.Value.Should().Be("base-tag");
-        item.DefaultValue.Should().Be("base-tag");
+        Assert.Equal("base-tag", item.Value);
+        Assert.Equal("base-tag", item.DefaultValue);
     }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
@@ -700,7 +703,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.IsSensitive.Should().BeTrue();
+        Assert.True(field.IsSensitive);
     }
 
     [Fact]
@@ -708,7 +711,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
-        field.IsSensitive.Should().BeFalse();
+        Assert.False(field.IsSensitive);
     }
 
     [Fact]
@@ -716,7 +719,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.Value.Should().BeNull();
+        Assert.Null(field.Value);
     }
 
     [Fact]
@@ -726,7 +729,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.Value.Should().Be("***");
+        Assert.Equal("***", field.Value);
     }
 
     [Fact]
@@ -736,7 +739,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "ApiKey");
-        field.Value.Should().NotBe("real-key");
+        Assert.NotEqual("real-key", field.Value);
     }
 
     [Fact]
@@ -747,7 +750,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.Value.Should().Be("***");
+        Assert.Equal("***", field.Value);
     }
 
     [Fact]
@@ -758,7 +761,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.Value.Should().BeNull();
+        Assert.Null(field.Value);
     }
 
     [Fact]
@@ -766,7 +769,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var creds = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Credentials");
-        creds.Fields.Single(f => f.Key == "Secret").IsSensitive.Should().BeTrue();
+        Assert.True(creds.Fields.Single(f => f.Key == "Secret").IsSensitive);
     }
 
     [Fact]
@@ -776,7 +779,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var creds = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Credentials");
-        creds.Fields.Single(f => f.Key == "Secret").Value.Should().Be("***");
+        Assert.Equal("***", creds.Fields.Single(f => f.Key == "Secret").Value);
     }
 
     [Fact]
@@ -784,7 +787,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.HasOverride.Should().BeFalse();
+        Assert.False(field.HasOverride);
     }
 
     [Fact]
@@ -794,7 +797,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.HasOverride.Should().BeTrue();
+        Assert.True(field.HasOverride);
     }
 
     [Fact]
@@ -805,7 +808,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Password");
-        field.HasOverride.Should().BeFalse();
+        Assert.False(field.HasOverride);
     }
 
     [Fact]
@@ -813,7 +816,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     {
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
-        field.HasOverride.Should().BeFalse();
+        Assert.False(field.HasOverride);
     }
 
     [Fact]
@@ -823,7 +826,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
 
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Sensitive").Fields.Single(f => f.Key == "Username");
-        field.HasOverride.Should().BeTrue();
+        Assert.True(field.HasOverride);
     }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>

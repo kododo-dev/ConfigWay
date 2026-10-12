@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using FluentAssertions;
 using Kododo.ConfigWay.SqlServer.Tests.Fixtures;
 using Kododo.ConfigWay.UI;
 using Microsoft.AspNetCore.Builder;
@@ -52,7 +51,7 @@ public class SqlServerApiTests : IAsyncLifetime
     public async Task GetConfiguration_Returns200()
     {
         var response = await PostGetConfiguration();
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
@@ -60,15 +59,15 @@ public class SqlServerApiTests : IAsyncLifetime
     {
         var sections = await FetchSections();
 
-        sections.Should().HaveCount(2);
-        sections.Select(s => s.Key).Should().BeEquivalentTo("Simple", "Nested");
+        Assert.Equal(2, sections.Length);
+        Assert.Equivalent(new[] { "Simple", "Nested" }, sections.Select(s => s.Key), strict: true);
     }
 
     [Fact]
     public async Task GetConfiguration_InitialValues_AreNull()
     {
         var sections = await FetchSections();
-        sections.SelectMany(s => s.Fields).Should().AllSatisfy(f => f.Value.Should().BeNull());
+        Assert.All(sections.SelectMany(s => s.Fields), f => Assert.Null(f.Value));
     }
 
     [Fact]
@@ -76,9 +75,10 @@ public class SqlServerApiTests : IAsyncLifetime
     {
         var response = await PostUpdate(new[] { new { key = "Simple:Name", value = "Alice" } });
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        errors.Should().BeEmpty();
+        Assert.NotNull(errors);
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class SqlServerApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().Be("Alice");
+        Assert.Equal("Alice", field.Value);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class SqlServerApiTests : IAsyncLifetime
         var sections  = (await response.Content.ReadFromJsonAsync<SectionDto[]>())!;
         var field     = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().Be("Persistent");
+        Assert.Equal("Persistent", field.Value);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class SqlServerApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().Be("Second");
+        Assert.Equal("Second", field.Value);
     }
 
     [Fact]
@@ -133,8 +133,8 @@ public class SqlServerApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var fields   = sections.Single(s => s.Key == "Simple").Fields;
 
-        fields.Single(f => f.Key == "Name").Value.Should().Be("Bob");
-        fields.Single(f => f.Key == "Value").Value.Should().Be("42");
+        Assert.Equal("Bob", fields.Single(f => f.Key == "Name").Value);
+        Assert.Equal("42", fields.Single(f => f.Key == "Value").Value);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class SqlServerApiTests : IAsyncLifetime
         var subSection = sections.Single(s => s.Key == "Nested").Sections.Single(s => s.Key == "Child");
         var field      = subSection.Fields.Single(f => f.Key == "ChildProp");
 
-        field.Value.Should().Be("deep");
+        Assert.Equal("deep", field.Value);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class SqlServerApiTests : IAsyncLifetime
         var sections = await FetchSections();
         var field    = sections.Single(s => s.Key == "Simple").Fields.Single(f => f.Key == "Name");
 
-        field.Value.Should().BeNull();
+        Assert.Null(field.Value);
     }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>

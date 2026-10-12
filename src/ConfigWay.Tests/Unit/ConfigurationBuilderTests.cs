@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Xunit;
 
@@ -21,7 +20,7 @@ public class ConfigurationBuilderTests
         method.Invoke(builder, [null]);
 
         var config = builder.Build();
-        config.Options.Should().Contain(o => o.Key == expectedKey);
+        Assert.Contains(config.Options, o => o.Key == expectedKey);
     }
 
     [Fact]
@@ -31,7 +30,7 @@ public class ConfigurationBuilderTests
         builder.AddOptions<SimpleOptions>("MyCustomKey");
 
         var config = builder.Build();
-        config.Options.Should().ContainSingle(o => o.Key == "MyCustomKey");
+        Assert.Single(config.Options, o => o.Key == "MyCustomKey");
     }
 
     [Fact]
@@ -42,8 +41,8 @@ public class ConfigurationBuilderTests
         builder.AddOptions<NestedOptions>("Second");
 
         var config = builder.Build();
-        config.Options.Should().HaveCount(2);
-        config.Options.Select(o => o.Key).Should().BeEquivalentTo("First", "Second");
+        Assert.Equal(2, config.Options.Count);
+        Assert.Equivalent(new[] { "First", "Second" }, config.Options.Select(o => o.Key), strict: true);
     }
 
     [Fact]
@@ -53,7 +52,7 @@ public class ConfigurationBuilderTests
         builder.AddOptions<SimpleOptions>("Simple");
 
         var config = builder.Build();
-        config.Options.Single(o => o.Key == "Simple").Type.Should().Be(typeof(SimpleOptions));
+        Assert.Equal(typeof(SimpleOptions), config.Options.Single(o => o.Key == "Simple").Type);
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class ConfigurationBuilderTests
         var builder = CreateBuilder();
         var config = builder.Build();
 
-        config.Store.Should().NotBeNull();
+        Assert.NotNull(config.Store);
     }
 
     private static ConfigurationBuilder CreateBuilder()

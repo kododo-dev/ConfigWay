@@ -30,7 +30,6 @@
     <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="1.0.0" />
 
     <!-- Testing -->
-    <PackageVersion Include="FluentAssertions" Version="8.11.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.15.0" />

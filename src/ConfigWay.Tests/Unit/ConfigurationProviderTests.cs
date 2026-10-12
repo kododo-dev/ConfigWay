@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.Core.Model;
 using Kododo.ConfigWay.Core.Store;
@@ -24,12 +23,12 @@ public class ConfigurationProviderTests
 
         provider.Load();
 
-        provider.TryGet("Simple:Name",  out var name).Should().BeTrue();
-        provider.TryGet("Simple:Value", out var value).Should().BeTrue();
-        name.Should().Be("Alice");
-        value.Should().Be("42");
+        Assert.True(provider.TryGet("Simple:Name",  out var name));
+        Assert.True(provider.TryGet("Simple:Value", out var value));
+        Assert.Equal("Alice", name);
+        Assert.Equal("42", value);
 
-        provider.TryGet("Unknown:Key", out _).Should().BeFalse();
+        Assert.False(provider.TryGet("Unknown:Key", out _));
     }
 
     [Fact]
@@ -41,8 +40,8 @@ public class ConfigurationProviderTests
         var provider = CreateProvider(store, new CoreOptions("Simple", typeof(SimpleOptions)));
         provider.Load();
 
-        provider.TryGet("simple:name", out var value).Should().BeTrue();
-        value.Should().Be("Alice");
+        Assert.True(provider.TryGet("simple:name", out var value));
+        Assert.Equal("Alice", value);
     }
 
     [Fact]
@@ -54,8 +53,8 @@ public class ConfigurationProviderTests
         var provider = CreateProvider(store, new CoreOptions("Simple", typeof(SimpleOptions)));
         provider.Load();
 
-        provider.TryGet("Simple:Name", out var value).Should().BeTrue();
-        value.Should().BeNull();
+        Assert.True(provider.TryGet("Simple:Name", out var value));
+        Assert.Null(value);
     }
 
     [Fact]
@@ -70,10 +69,10 @@ public class ConfigurationProviderTests
         var provider = CreateProvider(store, new CoreOptions("Root", typeof(NestedOptions)));
         provider.Load();
 
-        provider.TryGet("Root:TopLevel",      out var top).Should().BeTrue();
-        provider.TryGet("Root:Child:ChildProp", out var child).Should().BeTrue();
-        top.Should().Be("top");
-        child.Should().Be("child");
+        Assert.True(provider.TryGet("Root:TopLevel",      out var top));
+        Assert.True(provider.TryGet("Root:Child:ChildProp", out var child));
+        Assert.Equal("top", top);
+        Assert.Equal("child", child);
     }
 
     [Fact]
@@ -85,7 +84,7 @@ public class ConfigurationProviderTests
         var provider = CreateProvider(store, new CoreOptions("Opt", typeof(ReadOnlyPropOptions)));
         provider.Load();
 
-        provider.TryGet("Opt:ReadOnly", out _).Should().BeFalse();
+        Assert.False(provider.TryGet("Opt:ReadOnly", out _));
     }
 
     [Fact]
@@ -101,7 +100,7 @@ public class ConfigurationProviderTests
         await ((IConfigurationEditor)provider).ReloadAllAsync(CancellationToken.None);
 
         provider.TryGet("Simple:Name", out var value);
-        value.Should().Be("After");
+        Assert.Equal("After", value);
     }
 
     [Fact]
@@ -119,7 +118,7 @@ public class ConfigurationProviderTests
 
         await ((IConfigurationEditor)provider).ReloadAllAsync(CancellationToken.None);
 
-        changed.Should().BeTrue();
+        Assert.True(changed);
     }
 
     private static ConfigurationProvider CreateProvider(IStore store, params CoreOptions[] options)
