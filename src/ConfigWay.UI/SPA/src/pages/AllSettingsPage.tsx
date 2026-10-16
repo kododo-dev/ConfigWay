@@ -7,7 +7,7 @@ import SectionCard from '../components/settings/SectionCard';
 import PageHeader from '../components/layout/PageHeader';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
-import { saveSettings } from '../api/api';
+import { ApiError, saveSettings } from '../api/api';
 import { collectFields, buildDraftFromSections, getChangedSettings, SENSITIVE_MASK, SENSITIVE_RESET } from '../utils/settings';
 import type { ResetPatch } from '../utils/settings';
 
@@ -108,15 +108,11 @@ const AllSettingsPage = () => {
     setSaving(true);
 
     try {
-      const errors = await saveSettings(changed, keysToDelete);
-      if (errors.length > 0) {
-        setSaveErrors(errors);
-      } else {
-        setKeysToDelete([]);
-        await reload();
-      }
+      await saveSettings(changed, keysToDelete);
+      setKeysToDelete([]);
+      await reload();
     } catch (e) {
-      setSaveErrors([e instanceof Error ? e.message : t.unexpectedError]);
+      setSaveErrors(e instanceof ApiError ? e.messages : [e instanceof Error ? e.message : t.unexpectedError]);
     } finally {
       setSaving(false);
     }

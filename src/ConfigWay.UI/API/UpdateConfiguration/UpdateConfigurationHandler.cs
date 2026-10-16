@@ -14,15 +14,20 @@ internal class UpdateConfigurationHandler(
     Configuration configuration,
     IConfigurationEditor configurationEditor,
     IConfiguration appConfiguration,
-    IServiceProvider services) : IRequestHandler<UpdateConfiguration, string[]>
+    IServiceProvider services) : IRequestHandler<UpdateConfiguration>
 {
-    public async Task<string[]> HandleAsync(
+    public async Task HandleAsync(
         UpdateConfiguration request,
         CancellationToken stoppingToken)
     {
+        // The messages name the setting or the options section they are about, so they are all reported for the
+        // settings field rather than for single entries of it.
         var errors = Validate(request.Settings);
         if (errors.Length > 0)
-            return errors;
+            throw new RequestException("The settings are not valid.")
+            {
+                Errors = new Dictionary<string, string[]> { ["settings"] = errors },
+            };
 
         var keysToDelete = request.KeysToDelete ?? [];
         if (keysToDelete.Length > 0)
@@ -30,7 +35,6 @@ internal class UpdateConfigurationHandler(
 
         await configuration.Store.SetAsync(request.Settings, stoppingToken);
         await configurationEditor.ReloadAllAsync(stoppingToken);
-        return [];
     }
 
     private string[] Validate(Setting[] incoming)
