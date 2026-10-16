@@ -18,6 +18,16 @@
     <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.20</AspNetCoreTestVersion>
   </PropertyGroup>
 
+  <!--
+    Microsoft.Data.SqlClient (up to 7.1.1) depends on System.Security.Cryptography.Pkcs versions with known
+    vulnerabilities (CVE-2026-84008, CVE-2026-70162), so the patched ones are referenced directly.
+  -->
+  <PropertyGroup>
+    <PkcsVersion>10.0.13</PkcsVersion>
+    <PkcsVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.2</PkcsVersion>
+    <PkcsVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.21</PkcsVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Microsoft.Extensions.* -->
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="$(MicrosoftExtensionsVersion)" />
@@ -33,6 +43,7 @@
     <!-- Data access -->
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.3" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(PkcsVersion)" />
 
     <!-- ConfigWay.UI -->
     <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="1.0.0" />
