@@ -29,12 +29,18 @@ app.UseConfigWay("/admin/config");
 
 ## Authorization
 
-`UseConfigWay()` returns a `RouteGroupBuilder`:
+`UseConfigWay()` returns a `RouteGroupBuilder`. Outside the Development environment the editor answers `403` until you decide who may use it:
 
 ```csharp
 app.UseConfigWay()
    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+app.UseConfigWay().AllowAnonymous();   // a public demo
 ```
+
+## Way.Shell
+
+The editor runs in [Kododo.Way.Shell](https://www.nuget.org/packages/Kododo.Way.Shell): the layout, theme, language and session handling come from the shell. Configure the title, links and user with `services.AddWayShell(o => ...)`, and add `app.UseWayShell("/admin")` for one panel with every Way in the app.
 
 ## Features
 

@@ -17,6 +17,14 @@
         <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(UseLocalWayShell)' != 'true'">
+        <PackageReference Include="Kododo.Way.Shell" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseLocalWayShell)' == 'true'">
+        <ProjectReference Include="$(WayShellSource)\Way.Shell\Way.Shell.csproj" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\ConfigWay\ConfigWay.csproj" />
     </ItemGroup>
@@ -40,7 +48,7 @@
 
     <PropertyGroup>
         <PackageId>Kododo.ConfigWay.UI</PackageId>
-        <Description>Embedded web UI for ConfigWay. Adds a React-based editor served directly from the host application — no separate deployment required.</Description>
+        <Description>Embedded web UI for ConfigWay. Adds a React-based editor served directly from the host application, in Way.Shell — no separate deployment required.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

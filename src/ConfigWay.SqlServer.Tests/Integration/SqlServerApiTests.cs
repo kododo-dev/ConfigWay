@@ -34,7 +34,7 @@ public class SqlServerApiTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -188,7 +188,7 @@ public class SqlServerApiTests : IAsyncLifetime
         });
 
         var app = builder.Build();
-        app.UseConfigWay();
+        app.UseConfigWay().AllowAnonymous();
         await app.StartAsync();
         return app;
     }

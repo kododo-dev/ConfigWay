@@ -7,6 +7,7 @@ import SectionCard from '../components/settings/SectionCard';
 import PageHeader from '../components/layout/PageHeader';
 import { useI18n } from '../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
+import { useShell } from '@kododo-dev/way-shell';
 import { ApiError, saveSettings } from '../api/api';
 import { collectFields, buildDraftFromSections, getChangedSettings, SENSITIVE_MASK, SENSITIVE_RESET } from '../utils/settings';
 import type { ResetPatch } from '../utils/settings';
@@ -14,6 +15,7 @@ import type { ResetPatch } from '../utils/settings';
 const AllSettingsPage = () => {
   const { sections, loading, error: loadError, reload } = useSections();
   const { t } = useI18n();
+  const { api } = useShell();
   const theme = useTheme();
 
   const [draft,         setDraft]         = useState<Record<string, string>>({});
@@ -108,7 +110,7 @@ const AllSettingsPage = () => {
     setSaving(true);
 
     try {
-      await saveSettings(changed, keysToDelete);
+      await saveSettings(api, changed, keysToDelete);
       setKeysToDelete([]);
       await reload();
     } catch (e) {
@@ -116,7 +118,7 @@ const AllSettingsPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [allOriginal, draft, keysToDelete, keysToDeleteSet, reload, t]);
+  }, [api, allOriginal, draft, keysToDelete, keysToDeleteSet, reload, t]);
 
   const hasNoResults = !loading && !!search && sections.every(s => {
     const q = search.toLowerCase();

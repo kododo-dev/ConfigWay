@@ -32,7 +32,7 @@
     <!-- Microsoft.Extensions.* -->
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="$(MicrosoftExtensionsVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="$(MicrosoftExtensionsVersion)" />
 
@@ -46,7 +46,8 @@
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(PkcsVersion)" />
 
     <!-- ConfigWay.UI -->
-    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="2.0.0" />
+    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="2.1.1" />
+    <PackageVersion Include="Kododo.Way.Shell" Version="2.0.0" />
 
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />

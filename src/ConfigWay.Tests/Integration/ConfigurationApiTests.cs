@@ -35,7 +35,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -530,7 +530,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -704,7 +704,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();

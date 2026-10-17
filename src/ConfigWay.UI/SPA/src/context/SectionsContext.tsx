@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useShell } from '@kododo-dev/way-shell';
 import { fetchConfiguration } from '../api/api';
 import type { Section } from '../api/api.model';
 
@@ -17,6 +18,7 @@ const SectionsContext = createContext<SectionsContextValue>({
 });
 
 export const SectionsProvider = ({ children }: { children: React.ReactNode }) => {
+  const { api } = useShell();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +27,13 @@ export const SectionsProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       setLoading(true);
       setError(null);
-      setSections(await fetchConfiguration());
+      setSections(await fetchConfiguration(api));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => { reload(); }, [reload]);
 

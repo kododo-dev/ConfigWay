@@ -1,5 +1,4 @@
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import InputBase from '@mui/material/InputBase';
 import Tooltip from '@mui/material/Tooltip';
@@ -12,10 +11,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import type { SxProps } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import MenuIcon from '@mui/icons-material/Menu';
+import { PageHeader as ShellPageHeader } from '@kododo-dev/way-shell';
 import { useI18n } from '../../i18n/I18nContext';
-import { useLayout } from '../../context/LayoutContext';
 
 interface PageHeaderProps {
   title: string;
@@ -41,12 +38,8 @@ const PageHeader = ({
 }: PageHeaderProps) => {
   const theme = useTheme();
   const { t } = useI18n();
-  const { openMobileMenu } = useLayout();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
 
-  const borderColor = isDark ? '#2e2e2e' : '#e0e0e0';
-  const headerBg = isDark ? '#1e1e1e' : '#fff';
   const searchBg = isDark ? '#2a2a2a' : '#f5f5f5';
   const searchBorder = isDark ? '#363636' : '#ddd';
   const searchFocusBorder = theme.palette.primary.main;
@@ -56,38 +49,8 @@ const PageHeader = ({
 
   return (
     <Box sx={{ flexShrink: 0, ...sx }}>
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        px: 3,
-        py: 1.5,
-        borderBottom: `1px solid ${borderColor}`,
-        background: headerBg,
-        gap: 1.5,
-        minHeight: 59,
-      }}>
-        {isMobile && (
-          <IconButton
-            size="small"
-            onClick={openMobileMenu}
-            sx={{ color: theme.palette.text.secondary, flexShrink: 0, mr: 0.5, '&:hover': { color: theme.palette.primary.main } }}
-          >
-            <MenuIcon sx={{ fontSize: 20 }} />
-          </IconButton>
-        )}
-        <Box sx={{ minWidth: 0, flexShrink: 0 }}>
-          <Typography sx={{
-            ...MONO,
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: theme.palette.text.primary,
-            lineHeight: 1.2,
-            whiteSpace: 'nowrap',
-          }}>
-            {title}
-          </Typography>
-        </Box>
-        
+      {/* The shell's header bar: the menu button on narrow screens, the title; ConfigWay's search and actions in it. */}
+      <ShellPageHeader title={<Box component="span" sx={MONO}>{title}</Box>}>
         {showSearch && (
           <Box sx={{
             flex: 1,
@@ -132,7 +95,6 @@ const PageHeader = ({
           </Box>
         )}
         
-        {!showSearch && <Box sx={{ flex: 1 }} />}
         
         {showSave && hasChanges && onDiscard && (
           <Button
@@ -195,7 +157,7 @@ const PageHeader = ({
             </IconButton>
           </Tooltip>
         )}
-      </Box>
+      </ShellPageHeader>
       
       {errors && errors.length > 0 && (
         <Box sx={{
