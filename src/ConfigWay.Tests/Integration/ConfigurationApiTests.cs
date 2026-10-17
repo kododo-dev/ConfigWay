@@ -35,7 +35,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -97,15 +97,37 @@ public class ConfigurationApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateConfiguration_ValidSettings_Returns200WithEmptyErrors()
+    public async Task UpdateConfiguration_ValidSettings_Returns204()
     {
         var settings = new[] { new Setting("Simple:Name", "Alice") };
         var response = await PostUpdateConfiguration(settings);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        Assert.NotNull(errors);
-        Assert.Empty(errors);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_InvalidValue_ReturnsValidationProblem()
+    {
+        var response = await PostUpdateConfiguration([new Setting("Typed:Count", "not a number")]);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var message = Assert.Single(problem.GetProperty("errors").GetProperty("settings").EnumerateArray());
+        Assert.StartsWith("Typed:Count", message.GetString());
+    }
+
+    [Fact]
+    public async Task UpdateConfiguration_InvalidValue_NothingSaved()
+    {
+        await PostUpdateConfiguration([new Setting("Simple:Name", "Alice"), new Setting("Typed:Count", "not a number")]);
+
+        var sections = await FetchSections();
+        var field = sections
+            .Single(s => s.Key == "Simple")
+            .Fields.Single(f => f.Key == "Name");
+
+        Assert.Null(field.Value);
     }
 
     [Fact]
@@ -385,16 +407,13 @@ public class ConfigurationApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateConfiguration_DeleteReturns200WithEmptyErrors()
+    public async Task UpdateConfiguration_Delete_Returns204()
     {
         await PostUpdateConfiguration([new Setting("Arrays:Tags:0", "temp")]);
 
         var response = await PostUpdateConfiguration([], keysToDelete: ["Arrays:Tags:0"]);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        Assert.NotNull(errors);
-        Assert.Empty(errors);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
     private Task<HttpResponseMessage> PostGetConfiguration() =>
@@ -511,7 +530,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -685,7 +704,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();

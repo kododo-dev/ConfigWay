@@ -1,25 +1,16 @@
+import type { WayApi } from '@kododo-dev/way-shell';
 import type { Section, Setting } from './api.model';
 
-const BASE = `${import.meta.env.BASE_URL}api`;
+// Errors come from the shell's API client: ApiError (problem details), ForbiddenError, SessionExpiredError.
+export { ApiError } from '@kododo-dev/way-shell';
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
-  });
+export const fetchConfiguration = (api: WayApi): Promise<Section[]> =>
+  api.post<Section[]>('GetConfiguration');
 
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-
-  const text = await res.text();
-  return (text ? JSON.parse(text) : null) as T;
-}
-
-export const fetchConfiguration = (): Promise<Section[]> =>
-  post<Section[]>('/GetConfiguration');
-
+/** Throws {@link ApiError} with the validation messages when the settings are not valid. */
 export const saveSettings = (
+  api: WayApi,
   settings: Setting[],
   keysToDelete: string[] = [],
-): Promise<string[]> =>
-  post('/UpdateConfiguration', { settings, keysToDelete });
+): Promise<void> =>
+  api.post<void>('UpdateConfiguration', { settings, keysToDelete });

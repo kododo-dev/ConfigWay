@@ -2,6 +2,8 @@ using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.Core.Model;
 using Kododo.ConfigWay.Core.Store;
 using Kododo.ConfigWay.UI.API.UpdateConfiguration;
+using Kododo.Reiho.AspNetCore.API;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -24,13 +26,28 @@ public class UpdateConfigurationHandlerTests
         BuildServiceProvider();
     }
 
+    /// <summary>Runs the handler: no messages when it succeeds, else those of the validation problem it throws.</summary>
+    private static async Task<string[]> ErrorsOf(Task handling)
+    {
+        try
+        {
+            await handling;
+            return [];
+        }
+        catch (RequestException e)
+        {
+            Assert.Equal(StatusCodes.Status400BadRequest, e.StatusCode);
+            return Assert.Single(e.Errors!, x => x.Key == "settings").Value;
+        }
+    }
+
     [Fact]
     public async Task HandleAsync_ValidSettings_ReturnsEmptyErrors()
     {
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "Alice") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -41,7 +58,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "Alice") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _store.Received(1).SetAsync(
             Arg.Is<IReadOnlyCollection<Setting>>(s => s.Any(x => x.Key == "Simple:Name")),
@@ -54,7 +71,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "Alice") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _editor.Received(1).ReloadAllAsync(Arg.Any<CancellationToken>());
     }
@@ -65,7 +82,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", null) };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -77,7 +94,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "X") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e == AlwaysFailValidator.ErrorMessage);
     }
@@ -89,7 +106,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "X") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _store.DidNotReceive().SetAsync(Arg.Any<IReadOnlyCollection<Setting>>(), Arg.Any<CancellationToken>());
     }
@@ -101,7 +118,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "X") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _editor.DidNotReceive().ReloadAllAsync(Arg.Any<CancellationToken>());
     }
@@ -113,7 +130,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e == ConditionalValidator.ErrorMessage);
     }
@@ -125,7 +142,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "Alice") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -138,7 +155,7 @@ public class UpdateConfigurationHandlerTests
 
         var settings = new[] { new Setting("Other:SomeKey", "value") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -153,7 +170,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Enabled", value) };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -164,7 +181,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Enabled", "yes") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e.Contains("T:Enabled"));
     }
@@ -175,7 +192,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Count", "42") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -186,7 +203,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Count", "not-a-number") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e.Contains("T:Count"));
     }
@@ -202,7 +219,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Level", value) };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -213,7 +230,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("T", typeof(TypedOptions)));
         var settings = new[] { new Setting("T:Level", "Critical") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e.Contains("T:Level"));
     }
@@ -224,7 +241,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Root", typeof(NestedOptions)));
         var settings = new[] { new Setting("Root:Child:ChildProp", "value") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -235,7 +252,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:DoesNotExist", "value") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Single(errors, e => e.Contains("Simple:DoesNotExist"));
     }
@@ -246,7 +263,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
         var settings = new[] { new Setting("A:Tags:0", "production") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -257,7 +274,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
         var settings = new[] { new Setting("A:Tags:0", "production") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _store.Received(1).SetAsync(
             Arg.Is<IReadOnlyCollection<Setting>>(s => s.Any(x => x.Key == "A:Tags:0")),
@@ -270,7 +287,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("C", typeof(ComplexArrayOptions)));
         var settings = new[] { new Setting("C:Items:0:Name", "First item") };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -286,7 +303,7 @@ public class UpdateConfigurationHandlerTests
             new Setting("A:Tags:2", "gamma"),
         };
 
-        var errors = await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        var errors = await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         Assert.Empty(errors);
     }
@@ -300,7 +317,7 @@ public class UpdateConfigurationHandlerTests
             KeysToDelete = ["A:Tags:0", "A:Tags:1"],
         };
 
-        await handler.HandleAsync(request, default);
+        await ErrorsOf(handler.HandleAsync(request, default));
 
         await _store.Received(1).DeleteAsync(
             Arg.Is<IReadOnlyCollection<string>>(k =>
@@ -314,7 +331,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("A", typeof(SimpleArrayOptions)));
         var request = new UpdateConfiguration([]) { KeysToDelete = ["A:Tags:0"] };
 
-        await handler.HandleAsync(request, default);
+        await ErrorsOf(handler.HandleAsync(request, default));
 
         await _editor.Received(1).ReloadAllAsync(Arg.Any<CancellationToken>());
     }
@@ -325,7 +342,7 @@ public class UpdateConfigurationHandlerTests
         var handler = CreateHandler(new CoreOptions("Simple", typeof(SimpleOptions)));
         var settings = new[] { new Setting("Simple:Name", "Alice") };
 
-        await handler.HandleAsync(new UpdateConfiguration(settings), default);
+        await ErrorsOf(handler.HandleAsync(new UpdateConfiguration(settings), default));
 
         await _store.DidNotReceive().DeleteAsync(
             Arg.Any<IReadOnlyCollection<string>>(),

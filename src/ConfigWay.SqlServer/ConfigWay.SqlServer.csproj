@@ -7,6 +7,8 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Data.SqlClient" />
+      <!-- Patched version over the one Microsoft.Data.SqlClient brings; see Directory.Packages.props. -->
+      <PackageReference Include="System.Security.Cryptography.Pkcs" />
     </ItemGroup>
 
     <ItemGroup>

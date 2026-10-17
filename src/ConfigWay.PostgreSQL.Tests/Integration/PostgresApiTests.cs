@@ -34,7 +34,7 @@ public class PostgresApiTests : IAsyncLifetime
         });
 
         _app = builder.Build();
-        _app.UseConfigWay();
+        _app.UseConfigWay().AllowAnonymous();
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -71,14 +71,11 @@ public class PostgresApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateConfiguration_ValidSettings_Returns200WithEmptyErrors()
+    public async Task UpdateConfiguration_ValidSettings_Returns204()
     {
         var response = await PostUpdate(new[] { new { key = "Simple:Name", value = "Alice" } });
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var errors = await response.Content.ReadFromJsonAsync<string[]>();
-        Assert.NotNull(errors);
-        Assert.Empty(errors);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
     [Fact]
@@ -191,7 +188,7 @@ public class PostgresApiTests : IAsyncLifetime
         });
 
         var app = builder.Build();
-        app.UseConfigWay();
+        app.UseConfigWay().AllowAnonymous();
         await app.StartAsync();
         return app;
     }

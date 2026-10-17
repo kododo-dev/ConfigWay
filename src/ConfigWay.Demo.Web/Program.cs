@@ -43,6 +43,7 @@ app.MapGet("/", (
     return Results.Content(html, "text/html");
 });
 
-app.UseConfigWay();
+// The public demo: anyone may edit its settings.
+app.UseConfigWay().AllowAnonymous();
 
 app.Run();

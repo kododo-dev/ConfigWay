@@ -1,4 +1,5 @@
-using Kododo.Reiho.AspNetCore.API;
+﻿using Kododo.Reiho.AspNetCore.API;
+using Kododo.Way.Shell;
 
 namespace Kododo.ConfigWay.UI;
 
@@ -8,15 +9,17 @@ namespace Kododo.ConfigWay.UI;
 public static class ConfigurationBuilderExtensions
 {
     /// <summary>
-    /// Enables the ConfigWay web UI editor by registering the required API request handlers.
-    /// Call <see cref="EndpointRouteBuilderExtensions.UseConfigWay"/> in the middleware
-    /// pipeline to mount the UI at a specific path.
+    /// Enables the ConfigWay web UI editor by registering the required API request handlers and Way.Shell, which
+    /// the UI runs in. Call <see cref="EndpointRouteBuilderExtensions.UseConfigWay"/> in the middleware
+    /// pipeline to mount the UI at a specific path; configure the shell (title, links, user) with
+    /// <c>services.AddWayShell(o => ...)</c>.
     /// </summary>
     /// <param name="builder">The ConfigWay configuration builder.</param>
     /// <returns>The same builder instance for method chaining.</returns>
     public static ConfigurationBuilder AddUiEditor(this ConfigurationBuilder builder)
     {
         builder.Services.AddRequestHandlers(typeof(ConfigurationBuilderExtensions).Assembly);
+        builder.Services.AddWayShell();
         return builder;
     }
 }

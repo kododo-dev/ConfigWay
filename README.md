@@ -196,11 +196,32 @@ Errors are shown in the UI and saving is blocked until they are resolved.
 
 ## Security
 
-The `/config` route is not protected by default:
+Outside the Development environment the editor and its API answer `403` until you decide who may use them:
 
 ```csharp
 app.UseConfigWay()
    .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+// or, for a public demo:
+app.UseConfigWay().AllowAnonymous();
+```
+
+A fallback authorization policy counts as a decision too. An editor nobody decided on is reported in the log at startup.
+
+## Way.Shell
+
+The editor runs in [Way.Shell](https://github.com/kododo-dev/WayShell), the UI shell shared by the Kododo Way libraries: the layout, theme, language and session handling come from the shell, and with other Ways in the same app it can also be opened from the shell's panel:
+
+```csharp
+builder.Services.AddWayShell(o =>
+{
+    o.Title = "Acme";
+    o.HomeUrl = "~/";
+    o.User = ctx => ctx.User.Identity?.IsAuthenticated == true ? new ShellUser(ctx.User.Identity.Name!) { SignOutUrl = "~/logout" } : null;
+});
+
+app.UseConfigWay("/config").RequireAuthorization("Admin");
+app.UseWayShell("/admin").RequireAuthorization();   // every Way the user may open
 ```
 
 > Use `IOptionsSnapshot<T>` or `IOptionsMonitor<T>` in your code to always get the latest values after a reload.

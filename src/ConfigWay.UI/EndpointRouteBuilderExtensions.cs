@@ -1,5 +1,5 @@
-using Kododo.Reiho.AspNetCore.API;
-using Kododo.Reiho.AspNetCore.SPA;
+﻿using Kododo.Reiho.AspNetCore.API;
+using Kododo.Way.Shell;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
@@ -10,18 +10,25 @@ namespace Kododo.ConfigWay.UI;
 /// </summary>
 public static class EndpointRouteBuilderExtensions
 {
+    /// <summary>The editor as a Way.Shell module: <c>SPA/dist</c> is built with the wayModule() preset.</summary>
+    internal static readonly WayModule Module =
+        new("config", "Configuration", typeof(EndpointRouteBuilderExtensions).Assembly, "SPA/dist") { Icon = "settings" };
+
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Mounts the ConfigWay web UI and its API at the specified path.
+        /// Mounts the ConfigWay web UI and its API at the specified path, in Way.Shell.
         /// </summary>
         /// <param name="path">
         /// The base path for the ConfigWay UI. Defaults to <c>/config</c>.
-        /// The API is available at <c>{path}/api</c> and the SPA at <c>{path}</c>.
+        /// The API is available at <c>{path}/api</c> and the UI at <c>{path}</c>.
         /// </param>
         /// <returns>
         /// A <see cref="RouteGroupBuilder"/> that can be used to apply additional
         /// middleware such as authentication or authorization policies.
+        /// Outside the Development environment the UI and the API answer <c>403</c> until authorization is required
+        /// here, anonymous access is allowed explicitly (<c>AllowAnonymous()</c>) or <c>ShellOptions.AllowAnonymous</c>
+        /// is set.
         /// </returns>
         /// <example>
         /// <code>
@@ -31,18 +38,9 @@ public static class EndpointRouteBuilderExtensions
         /// </example>
         public RouteGroupBuilder UseConfigWay(string path = "/config")
         {
-            var configwayEndpoints = endpoints.MapGroup(path);
-
-            configwayEndpoints.MapApi();
-            configwayEndpoints.MapEmbeddedSpa(typeof(EndpointRouteBuilderExtensions).Assembly);
-
+            var configwayEndpoints = endpoints.MapWay(Module, path);
+            configwayEndpoints.MapGroup("/api").MapRequests(typeof(EndpointRouteBuilderExtensions).Assembly);
             return configwayEndpoints;
-        }
-
-        private void MapApi()
-        {
-            var api = endpoints.MapGroup("/api");
-            api.MapRequests(typeof(EndpointRouteBuilderExtensions).Assembly);
         }
     }
 }
