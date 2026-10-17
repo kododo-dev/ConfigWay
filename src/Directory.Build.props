@@ -18,11 +18,11 @@
   </PropertyGroup>
 
   <!--
-    Until Kododo.Way.Shell 2.0.0 is on NuGet, ConfigWay.UI builds against the WayShell sources checked out next to
-    this repository (../WayShell); -p:UseLocalWayShell=false uses the package.
+    ConfigWay.UI builds against Kododo.Way.Shell from NuGet; -p:UseLocalWayShell=true builds against the WayShell sources
+    checked out next to this repository (../WayShell), to work on both at once.
   -->
   <PropertyGroup>
-    <UseLocalWayShell Condition="'$(UseLocalWayShell)' == ''">true</UseLocalWayShell>
+    <UseLocalWayShell Condition="'$(UseLocalWayShell)' == ''">false</UseLocalWayShell>
     <WayShellSource Condition="'$(WayShellSource)' == ''">$(MSBuildThisFileDirectory)..\..\WayShell\src</WayShellSource>
   </PropertyGroup>
 
