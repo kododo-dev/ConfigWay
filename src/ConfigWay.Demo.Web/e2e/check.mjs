@@ -53,6 +53,8 @@ async function open(options = {}) {
     await field.fill('Acme Pilot');
     await Promise.all([
       page.waitForResponse((r) => r.url().endsWith('/config/api/UpdateConfiguration')),
+      // The editor loads the settings again after saving; reloading before that answers aborts it (WebKit reports it).
+      page.waitForResponse((r) => r.url().endsWith('/config/api/GetConfiguration')),
       page.getByRole('button', { name: 'Save' }).click(),
     ]);
     await page.reload();
