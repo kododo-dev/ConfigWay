@@ -5,6 +5,8 @@ using Kododo.ConfigWay.SqlServer.Tests.Fixtures;
 using Kododo.ConfigWay.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Kododo.ConfigWay.SqlServer.Tests.Integration;
@@ -158,6 +160,21 @@ public class SqlServerApiTests : IAsyncLifetime
         Assert.Null(field.Value);
     }
 
+    [Fact]
+    public async Task UpdateConfiguration_WithReloadInterval_ReachesAnotherReplica()
+    {
+        await using var replica = await CreateAppAsync(reloadInterval: TimeSpan.FromMilliseconds(100));
+        var monitor = replica.Services.GetRequiredService<IOptionsMonitor<SimpleOptions>>();
+
+        await PostUpdate(new[] { new { key = "Simple:Name", value = "FromAnotherReplica" } });
+
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (monitor.CurrentValue.Name != "FromAnotherReplica" && DateTime.UtcNow < deadline)
+            await Task.Delay(50);
+
+        Assert.Equal("FromAnotherReplica", monitor.CurrentValue.Name);
+    }
+
     private Task<HttpResponseMessage> PostGetConfiguration() =>
         _client.PostAsJsonAsync("/config/api/GetConfiguration", new { });
 
@@ -174,7 +191,7 @@ public class SqlServerApiTests : IAsyncLifetime
         return (await response.Content.ReadFromJsonAsync<SectionDto[]>())!;
     }
 
-    private async Task<WebApplication> CreateAppAsync()
+    private async Task<WebApplication> CreateAppAsync(TimeSpan? reloadInterval = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -185,6 +202,7 @@ public class SqlServerApiTests : IAsyncLifetime
             x.AddOptions<NestedOptions>("Nested");
             x.UseSqlServer(_fixture.ConnectionString);
             x.AddUiEditor();
+            x.ReloadInterval = reloadInterval;
         });
 
         var app = builder.Build();

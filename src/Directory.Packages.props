@@ -47,7 +47,7 @@
 
     <!-- ConfigWay.UI -->
     <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="2.1.1" />
-    <PackageVersion Include="Kododo.Way.Shell" Version="2.0.0" />
+    <PackageVersion Include="Kododo.Way.Shell" Version="2.1.1" />
 
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />

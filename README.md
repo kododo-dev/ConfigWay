@@ -226,9 +226,23 @@ app.UseWayShell("/admin").RequireAuthorization();   // every Way the user may op
 
 > Use `IOptionsSnapshot<T>` or `IOptionsMonitor<T>` in your code to always get the latest values after a reload.
 
+## Several replicas
+
+A save reloads the configuration in the instance that handled it. When the app runs as several replicas sharing one store, let each of them check the store for changes:
+
+```csharp
+builder.AddConfigWay(x =>
+{
+    x.UsePostgreSql(connectionString);
+    x.ReloadInterval = TimeSpan.FromSeconds(30);
+});
+```
+
+Every 30 seconds each replica reads the store and reloads only when a setting was added, changed or removed, so the other replicas get a change within one interval. Without `ReloadInterval` they keep their values until a restart.
+
 ## Limitations
 
-- Changes are reloaded only in the instance that saved them. When the app runs as several replicas, the other replicas pick up the new values after a restart.
+- Without `ReloadInterval`, changes are reloaded only in the instance that saved them (see [Several replicas](#several-replicas)).
 - Saves do not check for concurrent edits. If two people edit the same section at the same time, the last save wins.
 
 ## Custom store
