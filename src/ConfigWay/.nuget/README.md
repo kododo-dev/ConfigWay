@@ -76,6 +76,14 @@ builder.AddConfigWay(x =>
 });
 ```
 
+## Several replicas
+
+A save reloads the configuration in the instance that handled it. With several replicas sharing one store, let each of them check the store for changes:
+
+```csharp
+x.ReloadInterval = TimeSpan.FromSeconds(30);
+```
+
 ## Security
 
 The `/config` route is not protected by default:

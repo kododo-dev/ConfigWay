@@ -3,5 +3,6 @@
     <ProjectReference Include="..\ConfigWay.PostgreSQL\ConfigWay.PostgreSQL.csproj" />
     <ProjectReference Include="..\ConfigWay.UI\ConfigWay.UI.csproj" />
     <ProjectReference Include="..\ConfigWay\ConfigWay.csproj" />
+    <ProjectReference Include="..\ConfigWay.FeatureManagement\ConfigWay.FeatureManagement.csproj" />
   </ItemGroup>
 </Project>

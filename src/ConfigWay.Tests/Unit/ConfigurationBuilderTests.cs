@@ -64,9 +64,44 @@ public class ConfigurationBuilderTests
         Assert.NotNull(config.Store);
     }
 
+    [Fact]
+    public void AddProvider_KeepsTheProvidersInOrder()
+    {
+        var builder = CreateBuilder();
+        var first   = new EmptyProvider();
+        var second  = new EmptyProvider();
+
+        builder.AddProvider(first).AddProvider(second);
+
+        Assert.Equal([first, second], builder.Providers);
+    }
+
+    [Fact]
+    public void ReloadInterval_DefaultsToNull()
+    {
+        Assert.Null(CreateBuilder().ReloadInterval);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void AddConfigWay_WithANonPositiveReloadInterval_Throws(int seconds)
+    {
+        var appBuilder = WebApplication.CreateBuilder();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            appBuilder.AddConfigWay(x => x.ReloadInterval = TimeSpan.FromSeconds(seconds)));
+    }
+
     private static ConfigurationBuilder CreateBuilder()
     {
         var appBuilder = WebApplication.CreateBuilder();
         return new ConfigurationBuilder(appBuilder);
     }
+}
+
+file sealed class EmptyProvider : StoreConfigurationProvider
+{
+    protected override IEnumerable<KeyValuePair<string, string?>> Select(
+        IReadOnlyList<Kododo.ConfigWay.Core.Model.Setting> settings) => [];
 }

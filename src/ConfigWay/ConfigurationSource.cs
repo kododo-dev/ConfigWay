@@ -2,7 +2,7 @@
 
 namespace Kododo.ConfigWay;
 
-internal sealed class ConfigurationSource(ConfigurationProvider configurationProvider) : IConfigurationSource
+internal sealed class ConfigurationSource(StoreConfigurationProvider configurationProvider) : IConfigurationSource
 {
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {

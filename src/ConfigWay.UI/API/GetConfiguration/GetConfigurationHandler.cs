@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Kododo.ConfigWay.Core.Configuration;
 using Kododo.ConfigWay.UI.DTO;
@@ -19,7 +19,7 @@ internal sealed class GetConfigurationHandler(Configuration configuration, IConf
             ?? throw new InvalidOperationException(
                 $"{nameof(GetConfigurationHandler)} requires IConfiguration to implement IConfigurationRoot.");
         return new ConfigurationRoot(
-            root.Providers.Where(p => p is not ConfigurationProvider).ToList());
+            root.Providers.Where(p => p is not StoreConfigurationProvider).ToList());
     }
 
     public Task<Section[]> HandleAsync(GetConfiguration request, CancellationToken cancellationToken)

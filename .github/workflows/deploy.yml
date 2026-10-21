@@ -39,16 +39,26 @@ jobs:
           dotnet-quality: preview
 
       - name: Restore
-        run: dotnet restore src/ConfigWay.Tests/ConfigWay.Tests.csproj
+        run: |
+          dotnet restore src/ConfigWay.Tests/ConfigWay.Tests.csproj
+          dotnet restore src/ConfigWay.FeatureManagement.Tests/ConfigWay.FeatureManagement.Tests.csproj
 
       - name: Build
-        run: dotnet build src/ConfigWay.Tests/ConfigWay.Tests.csproj --no-restore --configuration Release
+        run: |
+          dotnet build src/ConfigWay.Tests/ConfigWay.Tests.csproj --no-restore --configuration Release
+          dotnet build src/ConfigWay.FeatureManagement.Tests/ConfigWay.FeatureManagement.Tests.csproj --no-restore --configuration Release
 
       - name: Test
         run: >
           dotnet test src/ConfigWay.Tests/ConfigWay.Tests.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=unit-results.trx"
+
+      - name: Test feature flags
+        run: >
+          dotnet test src/ConfigWay.FeatureManagement.Tests/ConfigWay.FeatureManagement.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=feature-flags-results.trx"
 
   test-postgres:
     name: PostgreSQL Tests

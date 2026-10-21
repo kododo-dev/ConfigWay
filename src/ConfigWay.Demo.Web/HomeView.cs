@@ -4,6 +4,19 @@ namespace Kododo.ConfigWay.Demo.Web;
 
 static class HomeView
 {
+    /// <summary>A visitor of the demo, for the targeting of the flags.</summary>
+    public sealed record Visitor(string? Id, string Label, string[] Groups);
+
+    public sealed record FlagState(string Name, bool Enabled, string? Variant);
+
+    public static readonly Visitor[] Visitors =
+    [
+        new(null, "anonymous", []),
+        new("alice", "alice", []),
+        new("bob", "bob (beta-testers)", ["beta-testers"]),
+        new("mallory", "mallory (beta-testers, excluded)", ["beta-testers"]),
+    ];
+
     public static string Render(
       string basePath,
         BrandingOptions b,
@@ -11,7 +24,8 @@ static class HomeView
         IdentityOptions id,
         StorageOptions st,
         WebhooksOptions wh,
-        FeatureFlags ff)
+        Visitor visitor,
+        FlagState[] flags)
     {
         static string Flag(bool on) => on
             ? "<span style='color:#16a34a;font-weight:600'>✓ on</span>"
@@ -41,6 +55,8 @@ static class HomeView
                 .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px 22px}
                 .card h2{font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:14px}
                 table{width:100%;border-collapse:collapse;font-size:.9rem}
+                .visitors{font-size:.82rem;color:#6b7280;margin:-6px 0 12px}
+                .visitors a{color:#2563eb;text-decoration:none}
                 .footer{text-align:center;padding:24px;color:#9ca3af;font-size:.82rem;border-top:1px solid #e5e7eb;margin-top:8px}
               </style>
             </head>
@@ -111,18 +127,22 @@ static class HomeView
                   </table>
                 </div>
 
-                <div class="card">
+                <div class="card" id="flags">
                   <h2>Feature Flags</h2>
+                  <p class="visitors">Seen by
+                    {{string.Join(" · ", Visitors.Select(v => v == visitor
+                        ? $"<b>{WebUtility.HtmlEncode(v.Label)}</b>"
+                        : $"<a href='{basePath}?user={Uri.EscapeDataString(v.Id ?? "")}#flags'>{WebUtility.HtmlEncode(v.Label)}</a>"))}}
+                  </p>
                   <table>
-                    <tr><td style='color:#6b7280;padding:4px 12px 4px 0'>New Checkout</td><td>{{Flag(ff.EnableNewCheckout)}}</td></tr>
-                    <tr><td style='color:#6b7280;padding:4px 12px 4px 0'>Beta Banner</td><td>{{Flag(ff.EnableBetaBanner)}}</td></tr>
-                    <tr><td style='color:#6b7280;padding:4px 12px 4px 0'>Maintenance Mode</td><td>{{Flag(ff.MaintenanceMode)}}</td></tr>
-                    <tr><td style='color:#6b7280;padding:4px 12px 4px 0'>Read-Only Mode</td><td>{{Flag(ff.ReadOnlyMode)}}</td></tr>
+                    {{string.Concat(flags.Select(f =>
+                        $"<tr><td style='color:#6b7280;padding:4px 12px 4px 0'>{WebUtility.HtmlEncode(f.Name)}</td>" +
+                        $"<td>{Flag(f.Enabled)}{(f.Variant is null ? "" : $" <span style='color:#6b7280'>· {WebUtility.HtmlEncode(f.Variant)}</span>")}</td></tr>"))}}
                   </table>
                 </div>
               </div>
 
-              <div class="footer">ConfigWay Demo · settings are read live via IOptionsSnapshot</div>
+              <div class="footer">ConfigWay Demo · settings are read live via IOptionsSnapshot, flags via IFeatureManager</div>
             </body>
             </html>
             """;

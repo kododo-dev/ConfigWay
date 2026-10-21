@@ -2,6 +2,7 @@
 using Kododo.Way.Shell;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kododo.ConfigWay.UI;
 
@@ -39,7 +40,10 @@ public static class EndpointRouteBuilderExtensions
         public RouteGroupBuilder UseConfigWay(string path = "/config")
         {
             var configwayEndpoints = endpoints.MapWay(Module, path);
-            configwayEndpoints.MapGroup("/api").MapRequests(typeof(EndpointRouteBuilderExtensions).Assembly);
+            var api = configwayEndpoints.MapGroup("/api");
+            api.MapRequests(typeof(EndpointRouteBuilderExtensions).Assembly);
+            foreach (var extension in endpoints.ServiceProvider.GetServices<UiExtension>())
+                api.MapRequests(extension.Requests);
             return configwayEndpoints;
         }
     }

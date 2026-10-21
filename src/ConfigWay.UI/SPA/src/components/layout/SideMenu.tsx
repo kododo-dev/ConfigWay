@@ -10,7 +10,9 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import TuneIcon from '@mui/icons-material/Tune';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import { useSections } from '../../context/SectionsContext';
+import { useFlags } from '../../context/FlagsContext';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '@mui/material/styles';
 
@@ -19,12 +21,14 @@ import { useTheme } from '@mui/material/styles';
 const SideMenu = () => {
   const { navigate, wayId } = useShell();
   const { sections } = useSections();
+  const { available: flagsAvailable } = useFlags();
   const { t } = useI18n();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const path = useParams()['*'] ?? '';
 
   const isAll = path === '' || path === 'all';
+  const isFlags = path === 'flags' || path.startsWith('flags/') || path.startsWith('flag/');
   const activeSectionKey = path.startsWith('section/')
     ? decodeURIComponent(path.slice('section/'.length))
     : null;
@@ -48,6 +52,14 @@ const SideMenu = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Box sx={{ flexShrink: 0, py: 1 }}>
           <List dense disablePadding>
+            {flagsAvailable && (
+              <ListItem disablePadding>
+                <ListItemButton selected={isFlags} onClick={() => navigate(wayId, 'flags')}>
+                  <ListItemIcon sx={isFlags ? activeIconSx : iconSx}><FlagOutlinedIcon /></ListItemIcon>
+                  <ListItemText primary={t.featureFlags} sx={textSx(isFlags)} />
+                </ListItemButton>
+              </ListItem>
+            )}
             <ListItem disablePadding>
               <ListItemButton selected={isAll} onClick={() => navigate(wayId, '')}>
                 <ListItemIcon sx={isAll ? activeIconSx : iconSx}><TuneIcon /></ListItemIcon>

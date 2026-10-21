@@ -7,10 +7,12 @@
     <Project Path="ConfigWay.SqlServer/ConfigWay.SqlServer.csproj" />
   </Folder>
   <Project Path="ConfigWay.Core/ConfigWay.Core.csproj" />
+  <Project Path="ConfigWay.FeatureManagement/ConfigWay.FeatureManagement.csproj" />
   <Project Path="ConfigWay.UI/ConfigWay.UI.csproj" />
   <Project Path="ConfigWay/ConfigWay.csproj" />
   <Folder Name="/Tests/">
     <Project Path="ConfigWay.Tests/ConfigWay.Tests.csproj" />
+    <Project Path="ConfigWay.FeatureManagement.Tests/ConfigWay.FeatureManagement.Tests.csproj" />
     <Project Path="ConfigWay.PostgreSQL.Tests/ConfigWay.PostgreSQL.Tests.csproj" />
     <Project Path="ConfigWay.SqlServer.Tests/ConfigWay.SqlServer.Tests.csproj" />
   </Folder>

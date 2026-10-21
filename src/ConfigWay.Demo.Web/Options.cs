@@ -214,20 +214,3 @@ public class WebhooksOptions
     public int MaxRetries { get; set; } = 3;
 }
 
-[Display(
-    Name = "FeatureFlags",
-    Description = "Runtime toggles for shipping work-in-progress behavior.")]
-public class FeatureFlags
-{
-    [Display(Name = "Enable New Checkout", Description = "Redirects users to the redesigned checkout flow.")]
-    public bool EnableNewCheckout { get; set; } = false;
-
-    [Display(Name = "Enable Beta Banner", Description = "Shows the 'beta' banner on top of the SPA.")]
-    public bool EnableBetaBanner { get; set; } = false;
-
-    [Display(Name = "Maintenance Mode", Description = "Short-circuits the site into a maintenance page.")]
-    public bool MaintenanceMode { get; set; } = false;
-
-    [Display(Name = "Read-Only Mode", Description = "Disables writes while keeping reads available.")]
-    public bool ReadOnlyMode { get; set; } = false;
-}
