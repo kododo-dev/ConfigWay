@@ -3,7 +3,7 @@
 [![CI](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml/badge.svg)](https://github.com/kododo-dev/ConfigWay/actions/workflows/ci.yml)
 [![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://kododo.dev/configway/demo)
 
-Runtime configuration editor for ASP.NET Core. View and modify `IOptions<T>` values at runtime through a built-in web UI without restarting the application.
+Runtime configuration editor for ASP.NET Core. View and modify `IOptions<T>` values at runtime through a built-in web UI without restarting the application, and manage [feature flags](#feature-flags) the same way.
 
 A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/configway/demo).
 
@@ -15,6 +15,10 @@ A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/confi
 
 ![Array editor](docs/screenshots/03-array-editor.png)
 
+![Feature flags](docs/screenshots/04-feature-flags.png)
+
+![Flag editor](docs/screenshots/05-flag-editor.png)
+
 ## Packages
 
 | Package | NuGet | Description |
@@ -24,6 +28,7 @@ A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/confi
 | `Kododo.ConfigWay.UI` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.UI)](https://www.nuget.org/packages/Kododo.ConfigWay.UI) | Embedded web UI |
 | `Kododo.ConfigWay.PostgreSQL` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.PostgreSQL)](https://www.nuget.org/packages/Kododo.ConfigWay.PostgreSQL) | PostgreSQL persistence store |
 | `Kododo.ConfigWay.SqlServer` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.SqlServer)](https://www.nuget.org/packages/Kododo.ConfigWay.SqlServer) | SQL Server persistence store |
+| `Kododo.ConfigWay.FeatureManagement` | [![NuGet](https://img.shields.io/nuget/v/Kododo.ConfigWay.FeatureManagement)](https://www.nuget.org/packages/Kododo.ConfigWay.FeatureManagement) | Feature flags of Microsoft.FeatureManagement in the editor |
 
 ## Quick start
 
@@ -193,6 +198,44 @@ builder.Services.AddSingleton<IValidateOptions<EmailOptions>, EmailOptionsValida
 ```
 
 Errors are shown in the UI and saving is blocked until they are resolved.
+
+## Feature flags
+
+`Kododo.ConfigWay.FeatureManagement` adds a Feature flags view to the editor. You can turn [Microsoft.FeatureManagement](https://learn.microsoft.com/azure/azure-app-configuration/feature-management-dotnet-reference) flags on and off, roll them out to users and groups, or limit them to a time window without redeploying. Your code keeps using `IFeatureManager`, `[FeatureGate]` and the other feature management APIs.
+
+```bash
+dotnet add package Kododo.ConfigWay.FeatureManagement
+```
+
+```csharp
+builder.AddConfigWay(x =>
+{
+    x.UsePostgreSql(connectionString);
+    x.AddUiEditor();
+    x.AddFeatureFlags();
+});
+
+builder.Services.AddFeatureManagement();
+```
+
+The view lists the flags from your configuration (the `feature_management` section of appsettings, environment variables and so on), including flags in the older `FeatureManagement` schema. You can also add flags that exist only in ConfigWay.
+
+A flag saved in the editor is stored by ConfigWay and replaces the flag with the same id from your configuration. Resetting it brings the configured flag back. A flag that exists only in ConfigWay is deleted on reset.
+
+| Filter | Editor |
+|---|---|
+| `Microsoft.Percentage` | Slider |
+| `Microsoft.TimeWindow` | Start and end in your time zone, stored in UTC |
+| `Microsoft.Targeting` | Users, groups with a percentage, default percentage, exclusions |
+| Other filters | JSON parameters |
+
+A filter that your application has not registered can't be saved, because checking the flag would throw.
+
+Variants, allocation, telemetry and recurring time windows are kept when you save a flag, but you can't edit them yet.
+
+To see how a flag evaluates for a user, enter the user and groups under "Check for a user". The check uses your application's feature manager.
+
+The flag endpoints are part of the editor's API (`{path}/api`) and use the same authorization. If the app runs as several replicas, set [`ReloadInterval`](#several-replicas) so that a changed flag reaches all of them.
 
 ## Security
 
