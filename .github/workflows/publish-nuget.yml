@@ -53,6 +53,9 @@ jobs:
           dotnet build src/ConfigWay.SqlServer/ConfigWay.SqlServer.csproj \
             --configuration Release \
             -p:Version=${{ steps.version.outputs.VERSION }}
+          dotnet build src/ConfigWay.FeatureManagement/ConfigWay.FeatureManagement.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Pack
         run: |
@@ -73,6 +76,10 @@ jobs:
             -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./nupkgs
           dotnet pack src/ConfigWay.SqlServer/ConfigWay.SqlServer.csproj \
+            --configuration Release --no-build \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./nupkgs
+          dotnet pack src/ConfigWay.FeatureManagement/ConfigWay.FeatureManagement.csproj \
             --configuration Release --no-build \
             -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./nupkgs

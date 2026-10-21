@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\ConfigWay.Core\ConfigWay.Core.csproj" />
     <ProjectReference Include="..\..\src\ConfigWay.UI\ConfigWay.UI.csproj" />
     <ProjectReference Include="..\..\src\ConfigWay.PostgreSQL\ConfigWay.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\src\ConfigWay.FeatureManagement\ConfigWay.FeatureManagement.csproj" />
   </ItemGroup>
 
 </Project>

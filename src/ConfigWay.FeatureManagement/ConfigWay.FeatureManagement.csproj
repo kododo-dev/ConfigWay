@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+      <ProjectReference Include="..\ConfigWay\ConfigWay.csproj" />
+      <ProjectReference Include="..\ConfigWay.UI\ConfigWay.UI.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.FeatureManagement" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include=".nuget\logo.png" Pack="true" PackagePath="\" />
+        <None Include=".nuget\README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Kododo.ConfigWay.FeatureManagement.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PackageId>Kododo.ConfigWay.FeatureManagement</PackageId>
+        <Description>Feature flags for ConfigWay. Manage Microsoft.FeatureManagement flags from the ConfigWay web UI without redeploying: switches, percentage rollouts, time windows and targeting.</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/kododo-dev/ConfigWay</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>1.0.0-local</Version>
+    </PropertyGroup>
+
+</Project>
