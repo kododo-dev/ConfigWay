@@ -95,6 +95,93 @@ async function open(options = {}) {
   await context.close();
 }
 
+// Feature flags (Kododo.ConfigWay.FeatureManagement): the demo's flags come from appsettings. Screenshots go to
+// $SHOTS when it is set.
+{
+  const { context, page, errors } = await open({ viewport: { width: 1280, height: 800 } });
+  const shot = (name) => process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${which}-${name}.png` }) : null;
+  const flagsLoaded = () => page.waitForResponse((r) => r.url().endsWith('/config/api/GetFeatureFlags'));
+  const homeFlag = async (name, user = '') => {
+    const html = await (await fetch(`${base}/?user=${user}`)).text();
+    return new RegExp(`>${name}</td><td><span[^>]*>✓ on`).test(html);
+  };
+
+  // Overrides left by an earlier run would change what the scenarios see.
+  for (const id of ['BetaBanner', 'NewCheckout', 'E2eFlag'])
+    await fetch(`${base}/config/api/ResetFeatureFlag`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+    });
+
+  await page.goto(`${base}/config/`);
+  const menu = page.getByTestId('way-menu');
+  record('flags: in the menu', await visible(menu.getByText('Feature flags')));
+  await menu.getByText('Feature flags').click();
+  record('flags: list', (await visible(page.getByTestId('flag-row-BetaBanner'))) && page.url().endsWith('#/flags'), page.url());
+  record('flags: .NET schema flag listed', await visible(page.getByTestId('flag-row-ReadOnlyMode').getByText('.NET schema')));
+  record('flags: variants shown', await visible(page.getByTestId('flag-row-SearchEngine').getByText('variants')));
+  await shot('flags-list');
+
+  // A switch saves at once; Undo puts the flag back.
+  const beta = page.getByRole('switch', { name: 'BetaBanner' });
+  // The list is drawn again after the response that reloads it; wait for the switch rather than read it at once.
+  const becomes = (checked) => beta.evaluate((e, c) => new Promise((resolve) => {
+    const check = () => (e.checked === c ? resolve(true) : setTimeout(check, 50));
+    check();
+  }), checked).then(() => true);
+  await Promise.all([flagsLoaded(), beta.click()]);
+  record('flags: switch turns a flag off', (await becomes(false)) && !(await homeFlag('BetaBanner')));
+  record('flags: the switch is an override', await visible(page.getByTestId('flag-row-BetaBanner').getByText('overridden')));
+  await Promise.all([flagsLoaded(), page.getByRole('button', { name: 'Undo' }).click()]);
+  record('flags: undo', (await becomes(true)) && (await homeFlag('BetaBanner')));
+  record('flags: undo removes the override it made',
+    await page.getByTestId('flag-row-BetaBanner').getByText('overridden').waitFor({ state: 'detached', timeout: 5000 }).then(() => true, () => false));
+
+  // The targeting editor, and the check through the app's feature manager.
+  await page.getByTestId('flag-row-NewCheckout').click();
+  record('flags: editor opens', (await visible(page.getByRole('heading', { name: 'NewCheckout' }))) && page.url().endsWith('#/flag/NewCheckout'), page.url());
+  record('flags: targeting form with its users', await visible(page.getByRole('button', { name: 'alice' })));
+  await page.getByRole('textbox', { name: 'User', exact: true }).fill('bob');
+  await page.getByLabel('Groups (comma-separated)').fill('beta-testers');
+  await page.getByRole('button', { name: 'Check', exact: true }).click();
+  record('flags: check for a user in a targeted group', await visible(page.getByText('On for this user')));
+  await page.getByRole('textbox', { name: 'User', exact: true }).fill('carol');
+  await page.getByLabel('Groups (comma-separated)').fill('');
+  await page.getByRole('button', { name: 'Check', exact: true }).click();
+  record('flags: check for another user', await visible(page.getByText('Off for this user')));
+  await shot('flag-targeting');
+
+  // Override, then reset to the configuration.
+  await page.getByLabel('Enabled').click();
+  await Promise.all([flagsLoaded(), page.getByRole('button', { name: 'Save' }).click()]);
+  record('flags: saved override', (await visible(page.getByText('Overrides the flag defined'))) && !(await homeFlag('NewCheckout', 'alice')));
+  await page.getByRole('button', { name: 'Reset to configuration' }).click();
+  await Promise.all([flagsLoaded(), page.getByRole('dialog').getByRole('button', { name: 'Reset to configuration' }).click()]);
+  record('flags: reset to configuration', (await visible(page.getByText('Defined in the application'))) && (await homeFlag('NewCheckout', 'alice')));
+
+  // A new flag: the API turns down a wrong percentage, then the flag is added and deleted.
+  await page.goto(`${base}/config/#/flags/new`);
+  await page.getByTestId('flag-id').fill('E2eFlag');
+  await page.getByRole('button', { name: 'Add condition' }).click();
+  await page.getByRole('menuitem', { name: 'Percentage' }).click();
+  await page.getByLabel('%', { exact: true }).fill('150');
+  await page.getByRole('button', { name: 'Save' }).click();
+  record('flags: error on the condition', await visible(page.getByText('The percentage must be between 0 and 100.')));
+  await shot('flag-new-error');
+  await page.getByLabel('%', { exact: true }).fill('100');
+  await Promise.all([flagsLoaded(), page.getByRole('button', { name: 'Save' }).click()]);
+  await page.waitForURL(/#\/flag\/E2eFlag$/, { timeout: 5000 }).catch(() => {});
+  record('flags: new flag saved', page.url().endsWith('#/flag/E2eFlag') && (await homeFlag('E2eFlag')), page.url());
+  await page.getByRole('button', { name: 'Delete flag' }).click();
+  await Promise.all([flagsLoaded(), page.getByRole('dialog').getByRole('button', { name: 'Delete flag' }).click()]);
+  await page.waitForURL(/#\/flags$/, { timeout: 5000 }).catch(() => {});
+  record('flags: deleted', page.url().endsWith('#/flags') && !(await homeFlag('E2eFlag')), page.url());
+
+  // Errors the API was meant to answer with (the 400 of the wrong percentage) are not page errors.
+  const unexpected = errors.filter((e) => !/^400 .*\/SaveFeatureFlag$/.test(e));
+  record('flags: no errors', unexpected.length === 0, unexpected.join(' | '));
+  await context.close();
+}
+
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.name}${r.detail ? ` — ${r.detail}` : ''}`);

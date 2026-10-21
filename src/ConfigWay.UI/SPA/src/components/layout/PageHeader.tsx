@@ -9,6 +9,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import type { ReactNode } from 'react';
 import type { SxProps } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { PageHeader as ShellPageHeader } from '@kododo-dev/way-shell';
@@ -24,6 +25,9 @@ interface PageHeaderProps {
   errors?: string[];
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  searchPlaceholder?: string;
+  /** More actions, before the refresh button. */
+  actions?: ReactNode;
   sx?: SxProps;
 }
 
@@ -33,7 +37,8 @@ const PageHeader = ({
   title, onRefresh,
   hasChanges, saving, onSave, onDiscard,
   errors,
-  searchQuery, onSearchChange,
+  searchQuery, onSearchChange, searchPlaceholder,
+  actions,
   sx,
 }: PageHeaderProps) => {
   const theme = useTheme();
@@ -73,7 +78,7 @@ const PageHeader = ({
             <InputBase
               value={searchQuery}
               onChange={e => onSearchChange!(e.target.value)}
-              placeholder={t.searchPlaceholder}
+              placeholder={searchPlaceholder ?? t.searchPlaceholder}
               fullWidth
               sx={{
                 ...MONO,
@@ -146,6 +151,8 @@ const PageHeader = ({
           </Button>
         )}
         
+        {actions}
+
         {onRefresh && (
           <Tooltip title={t.refreshTooltip}>
             <IconButton

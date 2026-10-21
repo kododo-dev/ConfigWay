@@ -53,6 +53,7 @@ The editor runs in [Kododo.Way.Shell](https://www.nuget.org/packages/Kododo.Way.
 - Field type-aware controls: text input for `string`, toggle switch for `bool`, numeric input for numeric types, dropdown for `enum`
 - Dark / light theme, persisted to `localStorage`
 - Language follows browser preference (English and Polish)
+- Feature flags view with [Kododo.ConfigWay.FeatureManagement](https://www.nuget.org/packages/Kododo.ConfigWay.FeatureManagement): switches, percentage, time window and targeting forms, a check for a user
 
 ## Links
 
