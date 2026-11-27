@@ -3,61 +3,41 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <!--
-    The packages depend on the Microsoft.Extensions.* line of the runtime they target, so an app on
-    net8.0 is not pulled up to the 10.x packages. Embedded stays on 10.x: the .NET 10 SDK prunes the
-    older versions, which drops the task that writes the embedded files manifest.
-    The test host follows the runtime the tests run on.
-  -->
+  <!-- The test host follows the runtime the tests run on. -->
   <PropertyGroup>
-    <MicrosoftExtensionsVersion>10.0.12</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.0</MicrosoftExtensionsVersion>
-    <AspNetCoreTestVersion>10.0.12</AspNetCoreTestVersion>
-    <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.31</AspNetCoreTestVersion>
-    <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.20</AspNetCoreTestVersion>
-  </PropertyGroup>
-
-  <!--
-    Microsoft.Data.SqlClient (up to 7.1.1) depends on System.Security.Cryptography.Pkcs versions with known
-    vulnerabilities (CVE-2026-84008, CVE-2026-70162), so the patched ones are referenced directly.
-  -->
-  <PropertyGroup>
-    <PkcsVersion>10.0.13</PkcsVersion>
-    <PkcsVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.2</PkcsVersion>
-    <PkcsVersion Condition="'$(TargetFramework)' == 'net9.0'">9.0.21</PkcsVersion>
+    <AspNetCoreTestVersion>10.0.15</AspNetCoreTestVersion>
+    <AspNetCoreTestVersion Condition="'$(TargetFramework)' == 'net11.0'">11.0.0</AspNetCoreTestVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Microsoft.Extensions.* -->
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="$(MicrosoftExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.15" />
 
     <!-- ASP.NET Core test hosting -->
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(AspNetCoreTestVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(AspNetCoreTestVersion)" />
 
     <!-- Data access -->
-    <PackageVersion Include="Npgsql" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.3" />
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(PkcsVersion)" />
+    <PackageVersion Include="Npgsql" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="8.0.0" />
 
     <!-- ConfigWay.UI -->
-    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="2.1.1" />
-    <PackageVersion Include="Kododo.Way.Shell" Version="2.1.1" />
+    <PackageVersion Include="Kododo.Reiho.AspNetCore" Version="3.0.0" />
+    <PackageVersion Include="Kododo.Way.Shell" Version="3.0.0" />
 
     <!-- ConfigWay.FeatureManagement -->
     <PackageVersion Include="Microsoft.FeatureManagement" Version="4.8.0" />
 
     <!-- Testing -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="4.15.0" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.17.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.17.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 </Project>

@@ -12,14 +12,14 @@ public class StoreTests : IAsyncLifetime
 
     public StoreTests(SqlServerFixture fixture) => _fixture = fixture;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _store = new Store(_fixture.ConnectionString);
         await _store.InitializeAsync();
         await _fixture.ResetAsync();
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task InitializeAsync_CreatesSchemaAndTable()

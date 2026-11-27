@@ -20,7 +20,7 @@ public class SqlServerApiTests : IAsyncLifetime
 
     public SqlServerApiTests(SqlServerFixture fixture) => _fixture = fixture;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _fixture.ResetAsync();
 
@@ -42,7 +42,7 @@ public class SqlServerApiTests : IAsyncLifetime
         _client = _app.GetTestClient();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
         await _app.StopAsync();

@@ -50,12 +50,12 @@ public class FeatureFlagsApiTests : IAsyncLifetime
         ["FeatureManagement:Old"] = "true",
     };
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         (_app, _client) = await StartAsync(featureManagement: true);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
         await _app.DisposeAsync();
