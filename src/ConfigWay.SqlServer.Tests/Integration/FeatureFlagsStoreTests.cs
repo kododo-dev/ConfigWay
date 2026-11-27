@@ -16,9 +16,9 @@ namespace Kododo.ConfigWay.SqlServer.Tests.Integration;
 [Collection("SqlServer")]
 public class FeatureFlagsStoreTests(SqlServerFixture fixture) : IAsyncLifetime
 {
-    public Task InitializeAsync() => fixture.ResetAsync();
+    public async ValueTask InitializeAsync() => await fixture.ResetAsync();
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task SavedFlag_SurvivesARestart()

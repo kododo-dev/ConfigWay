@@ -32,6 +32,8 @@ A live demo is available at [kododo.dev/configway/demo](https://kododo.dev/confi
 
 ## Quick start
 
+ConfigWay requires .NET 10 or later.
+
 ```bash
 dotnet add package Kododo.ConfigWay
 dotnet add package Kododo.ConfigWay.UI

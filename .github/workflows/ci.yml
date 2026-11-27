@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/ConfigWay.UI/SPA/package-lock.json
 
@@ -32,10 +32,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.x
-            9.x
             10.x
-          dotnet-quality: preview
+            11.x
 
       - name: Restore
         run: |
@@ -77,7 +75,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/ConfigWay.UI/SPA/package-lock.json
 
@@ -91,10 +89,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.x
-            9.x
             10.x
-          dotnet-quality: preview
+            11.x
 
       - name: Restore
         run: dotnet restore src/ConfigWay.PostgreSQL.Tests/ConfigWay.PostgreSQL.Tests.csproj
@@ -126,7 +122,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/ConfigWay.UI/SPA/package-lock.json
 
@@ -140,10 +136,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.x
-            9.x
             10.x
-          dotnet-quality: preview
+            11.x
 
       - name: Restore
         run: dotnet restore src/ConfigWay.SqlServer.Tests/ConfigWay.SqlServer.Tests.csproj

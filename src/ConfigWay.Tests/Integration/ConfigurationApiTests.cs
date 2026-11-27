@@ -19,7 +19,7 @@ public class ConfigurationApiTests : IAsyncLifetime
     private static readonly JsonSerializerOptions JsonOpts =
         new(JsonSerializerDefaults.Web);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -41,7 +41,7 @@ public class ConfigurationApiTests : IAsyncLifetime
         _client = _app.GetTestClient();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
         await _app.StopAsync();
@@ -509,7 +509,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
     private static readonly JsonSerializerOptions JsonOpts =
         new(JsonSerializerDefaults.Web);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -536,7 +536,7 @@ public class ConfigurationApiDefaultValueTests : IAsyncLifetime
         _client = _app.GetTestClient();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
         await _app.StopAsync();
@@ -691,7 +691,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
     private static readonly JsonSerializerOptions JsonOpts =
         new(JsonSerializerDefaults.Web);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -710,7 +710,7 @@ public class ConfigurationApiSensitiveTests : IAsyncLifetime
         _client = _app.GetTestClient();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
         await _app.StopAsync();
